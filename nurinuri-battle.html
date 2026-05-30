@@ -424,6 +424,10 @@
   // ---- 入力 ----
   const keys={}; let mouseDown=false, rightMouseDown=false, mouseX=0, mouseY=0, mouseOverField=false;
   let mouseDeltaX = 0, lastCameraMoveTime = 0, prevMouseX = null;
+  // タッチ操作を検知したらマウス由来の操作（カーソル追従移動・マウス発射）を無効化する。
+  // スマホでタップ時に発火する疑似マウスイベントで、キャラが勝手に動くのを防ぐため。
+  let usingTouch = false;
+  window.addEventListener('touchstart', ()=>{ usingTouch=true; mouseOverField=false; mouseDown=false; }, {passive:true});
   window.addEventListener('keydown',e=>{
     if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) bombPress(); return; }
     keys[e.key.toLowerCase()]=true;
@@ -608,8 +612,8 @@
     if(keys['arrowleft']||keys['a'])mdx-=1; if(keys['arrowright']||keys['d'])mdx+=1;
     if(keys['arrowup']||keys['w'])mdy-=1; if(keys['arrowdown']||keys['s'])mdy+=1;
 
-    // Mouse/Trackpad movement (cursor follow).
-    if(!moveStick.active && mouseOverField){
+    // Mouse/Trackpad movement (cursor follow). タッチ操作中は無効（スティックで動かすため）。
+    if(!usingTouch && !moveStick.active && mouseOverField){
       if(isRotated()){
         // 回転ビュー（1人称／2人称）：マウス横移動でカメラを旋回（loop側で処理）し、
         // カーソルの上下位置で「カメラの向きに沿った前進／後退」を行う。
@@ -633,7 +637,8 @@
       if(fm>0.35){ const wa=screenDirToWorld(fireStick.dx/fm,fireStick.dy/fm); ax=wa.x; ay=wa.y; firing=true; } }
     
     // PC/Mouse aiming: when mobile touch sticks are not active, continuously aim towards the mouse pointer
-    const pcAiming = !moveStick.active && !fireStick.active;
+    // タッチ操作中はマウス追従照準を使わない。
+    const pcAiming = !usingTouch && !moveStick.active && !fireStick.active;
     let pcAimX = player.aimx, pcAimY = player.aimy;
     if(pcAiming){
       if(isRotated()){
@@ -648,7 +653,7 @@
       }
     }
 
-    const isPcFiring = mouseDown || keys['shift'];
+    const isPcFiring = (!usingTouch && mouseDown) || keys['shift'];
     if(isPcFiring){
       ax = pcAimX; ay = pcAimY;
       firing = true;
@@ -1032,7 +1037,7 @@
 
     if(isRotated()&&player&&player.alive){
       const now = performance.now();
-      const pcAiming = !moveStick.active && !fireStick.active;
+      const pcAiming = !usingTouch && !moveStick.active && !fireStick.active;
       if(pcAiming){
         // Rotate camera directly based on mouse/trackpad delta
         if(Math.abs(mouseDeltaX) > 0.01){
