@@ -324,7 +324,7 @@
 
   // ---- ボム（チャージ＆溜め投げ）----
   let bombGauge=0, throwing=false, throwPower=0;
-  const BOMB_MIN=80, BOMB_MAX=325, THROW_FULL=0.7;
+  const BOMB_MIN=80, BOMB_MAX=325, THROW_FULL=0.7, BOMB_DAMAGE=80, BOMB_DAMAGE_RADIUS=92, BOMB_IMPACT_RADIUS=18;
   function bombPress(){ if(state!=='play'||!player||!player.alive) return; if(bombGauge>=1){ throwing=true; throwPower=0; } }
   function bombRelease(){ if(throwing){ throwBomb(throwPower); throwing=false; throwPower=0; } }
   function throwBomb(power){
@@ -334,13 +334,16 @@
     const dx=player.aimx/len, dy=player.aimy/len;
     let tx=player.x+dx*dist, ty=player.y+dy*dist;
     tx=Math.max(12,Math.min(SIZE-12,tx)); ty=Math.max(12,Math.min(SIZE-12,ty));
-    bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650});
+    bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650,team:player.team});
     bombGauge=0;
   }
-  function explodeBomb(b){
-    splat(b.tx,b.ty,1,80);
-    bombFx.push({x:b.tx,y:b.ty,r:0,max:150});
-    for(const o of allChars){ if(o.team!==1 && o.alive && Math.hypot(o.x-b.tx,o.y-b.ty)<90) damage(o,80); }
+  function explodeBomb(b,x=b.tx,y=b.ty){
+    splat(x,y,b.team,80);
+    bombFx.push({x,y,r:0,max:150});
+    for(const o of allChars){
+      if(o.team===b.team || !o.alive) continue;
+      if(Math.hypot(o.x-x,o.y-y)<BOMB_DAMAGE_RADIUS+o.r) damage(o,BOMB_DAMAGE);
+    }
   }
 
   // ---- AI ----
@@ -735,6 +738,12 @@
     for(let i=bombs.length-1;i>=0;i--){ const b=bombs[i]; b.t+=dt;
       const p=Math.min(1,b.t/b.dur);
       b.x=b.sx+(b.tx-b.sx)*p; b.y=b.sy+(b.ty-b.sy)*p; b.arc=Math.sin(p*Math.PI)*34;
+      let hit=false;
+      for(const o of allChars){
+        if(o.team===b.team || !o.alive) continue;
+        if(Math.hypot(o.x-b.x,o.y-b.y)<BOMB_IMPACT_RADIUS+o.r){ hit=true; break; }
+      }
+      if(hit){ explodeBomb(b,b.x,b.y); bombs.splice(i,1); continue; }
       if(p>=1){ explodeBomb(b); bombs.splice(i,1); } }
   }
   function updateSplats(dt){
