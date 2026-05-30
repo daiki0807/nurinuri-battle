@@ -752,6 +752,10 @@
   function drawPlayerBadge(x,y,r,a,scale=1){
     const pulse=1+Math.sin(performance.now()/130)*0.07;
     gctx.save();
+    gctx.fillStyle='#ffe600';gctx.strokeStyle='#000';gctx.lineWidth=2*scale;
+    roundRect(gctx,x-22*scale,y-r-42*scale,44*scale,18*scale,8*scale);gctx.fill();gctx.stroke();
+    gctx.fillStyle='#161616';gctx.font='900 '+Math.max(9,10*scale)+'px "Zen Maru Gothic"';gctx.textAlign='center';gctx.textBaseline='middle';
+    gctx.fillText('じぶん',x,y-r-33*scale);
     gctx.strokeStyle='rgba(255,255,255,.95)';gctx.lineWidth=3*scale;
     gctx.beginPath();gctx.arc(x,y,r+8*scale*pulse,0,Math.PI*2);gctx.stroke();
     gctx.strokeStyle='rgba(255,230,0,.95)';gctx.lineWidth=2*scale;
@@ -769,6 +773,21 @@
     gctx.moveTo(x+Math.cos(a)*(r+19*scale),y+Math.sin(a)*(r+19*scale));
     gctx.lineTo(x+Math.cos(a+2.45)*(r+8*scale),y+Math.sin(a+2.45)*(r+8*scale));
     gctx.lineTo(x+Math.cos(a-2.45)*(r+8*scale),y+Math.sin(a-2.45)*(r+8*scale));
+    gctx.closePath();gctx.fill();gctx.stroke();
+    gctx.restore();
+  }
+  function drawPlayerFaceMark(x,y,r,scale=1){
+    const pts=5, outer=r*0.48, inner=r*0.22;
+    gctx.save();
+    gctx.translate(x,y);
+    gctx.fillStyle='#fff';gctx.strokeStyle='#000';gctx.lineWidth=2*scale;
+    gctx.beginPath();
+    for(let i=0;i<pts*2;i++){
+      const rr=i%2===0?outer:inner;
+      const a=-Math.PI/2+i*Math.PI/pts;
+      const px=Math.cos(a)*rr, py=Math.sin(a)*rr;
+      if(i===0) gctx.moveTo(px,py); else gctx.lineTo(px,py);
+    }
     gctx.closePath();gctx.fill();gctx.stroke();
     gctx.restore();
   }
@@ -791,7 +810,7 @@
     gctx.lineTo(c.x+Math.cos(a+2.5)*c.r,c.y+Math.sin(a+2.5)*c.r);
     gctx.lineTo(c.x+Math.cos(a-2.5)*c.r,c.y+Math.sin(a-2.5)*c.r);gctx.closePath();gctx.fill();
     gctx.fillStyle='rgba(255,255,255,.65)';gctx.beginPath();gctx.arc(c.x-c.r*0.3,c.y-c.r*0.3,c.r*0.26,0,Math.PI*2);gctx.fill();
-    if(c===player) drawPlayerBadge(c.x,c.y,c.r,a);
+    if(c===player){ drawPlayerFaceMark(c.x,c.y,c.r); drawPlayerBadge(c.x,c.y,c.r,a); }
     if(c.isBot && c.team===1){ gctx.fillStyle='#fff';gctx.font='bold 9px "Dela Gothic One"';gctx.textAlign='center';
       gctx.fillText('味', c.x, c.y-c.r-4); }
     if(c.hp<c.maxHp){ gctx.strokeStyle='rgba(0,0,0,.4)';gctx.lineWidth=3;
@@ -899,7 +918,7 @@
       gctx.fillStyle=COLOR[c.team]; gctx.strokeStyle='#000'; gctx.lineWidth=Math.max(1,3*s);
       gctx.beginPath(); gctx.arc(p.sx,cy,br,0,Math.PI*2); gctx.fill(); gctx.stroke();
       gctx.fillStyle='rgba(255,255,255,.65)'; gctx.beginPath(); gctx.arc(p.sx-br*0.3,cy-br*0.3,br*0.26,0,Math.PI*2); gctx.fill();
-      if(c===player) drawPlayerBadge(p.sx,cy,br,Math.atan2(c.aimy,c.aimx),s);
+      if(c===player){ drawPlayerFaceMark(p.sx,cy,br,s); drawPlayerBadge(p.sx,cy,br,Math.atan2(c.aimy,c.aimx),s); }
       if(c.isBot && c.team===1){ gctx.fillStyle='#fff'; gctx.font='bold '+Math.max(7,9*s)+'px "Dela Gothic One"'; gctx.textAlign='center';
         gctx.fillText('味',p.sx,cy-br-3*s); }
       if(c.hp<c.maxHp){ const rr=br+5*s;
