@@ -983,7 +983,7 @@
     // --- 奥のものから順に描画（ペインターズ） ---
     const items=[];
     for(const o of obstacles) items.push({k:'obs',o,depth:(o.x+o.w/2-camX)*cs+(o.y+o.h/2-camY)*sn});
-    for(const c of allChars){ const p=proj(c.x,c.y,0); if(p) items.push({k:'char',c,p,depth:p.depth}); }
+    for(const c of allChars){ if(c===player) continue; const p=proj(c.x,c.y,0); if(p) items.push({k:'char',c,p,depth:p.depth}); }
     for(const s of shots){ const p=proj(s.x,s.y,6); if(p) items.push({k:'shot',s,p,depth:p.depth}); }
     for(const b of bombs){ const p=proj(b.x,b.y,b.arc+8); if(p) items.push({k:'bomb',b,p,depth:p.depth}); }
     for(const f of bombFx){ const p=proj(f.x,f.y,2); if(p) items.push({k:'fx',f,p,depth:p.depth}); }
