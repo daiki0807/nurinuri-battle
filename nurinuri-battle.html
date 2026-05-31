@@ -72,6 +72,8 @@
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:11;pointer-events:none;opacity:0;}
 
   .gauge-container {display:flex;align-items:center;gap:8px;width:100%;}
+  .hud-char{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #000;
+    background:#1a1a26;box-shadow:0 2px 0 #000;flex:none;}
   .active-weapon {font-family:"Dela Gothic One",cursive;font-size:11px;color:#fff;
     background:linear-gradient(180deg,#2a2a3a,#1a1a26);border:3px solid #000;border-radius:10px;
     padding:3px 10px;box-shadow:0 3px 0 #000;white-space:nowrap;text-shadow:1px 1px 0 #000;}
@@ -111,6 +113,29 @@
   .weapon-btn .w-name{font-family:"Dela Gothic One",cursive;font-size:12px;color:#fff;margin-bottom:1px;}
   .weapon-btn.active .w-name{color:var(--yellow);text-shadow:1px 1px 0 #000;}
   .weapon-btn .w-desc{font-size:10px;color:#cfcfe0;}
+
+  /* ステップ式 セレクト（キャラ→ブキ） */
+  .select-step{display:none;flex-direction:column;align-items:center;gap:8px;width:100%;}
+  .select-step.show{display:flex;}
+  .step-dots{display:flex;gap:8px;margin-top:2px;}
+  .step-dots .dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid #000;}
+  .step-dots .dot.on{background:var(--yellow);}
+  .pick-grid{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;width:100%;}
+  .pick-card{position:relative;width:120px;background:rgba(255,255,255,.05);border:3px solid #000;border-radius:14px;
+    padding:8px 8px 6px;cursor:pointer;transition:all .12s ease;box-shadow:0 3px 0 #000;text-align:center;}
+  .pick-card:hover{background:rgba(255,255,255,.10);}
+  .pick-card.active{background:linear-gradient(135deg,rgba(255,106,0,.18),rgba(255,230,0,.18));
+    border-color:var(--yellow);box-shadow:0 3px 0 var(--orange);transform:translateY(-2px);}
+  .pick-card img{width:100%;height:96px;object-fit:contain;border-radius:8px;display:block;background:rgba(0,0,0,.2);}
+  .pick-card .p-name{font-family:"Dela Gothic One",cursive;font-size:12px;color:#fff;margin-top:5px;}
+  .pick-card.active .p-name{color:var(--yellow);text-shadow:1px 1px 0 #000;}
+  .pick-card .p-desc{font-size:9.5px;color:#cfcfe0;line-height:1.35;margin-top:2px;min-height:26px;}
+  .pick-card .p-check{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;
+    background:var(--yellow);border:2px solid #000;color:#161616;font-size:13px;font-weight:900;
+    display:none;align-items:center;justify-content:center;line-height:1;}
+  .pick-card.active .p-check{display:flex;}
+  .step-btns{display:flex;gap:10px;margin-top:2px;}
+  .btn.small{font-size:14px;padding:7px 18px;}
 </style>
 </head>
 <body>
@@ -141,26 +166,63 @@
         <b>ボムは自分の陣地に乗るとチャージ</b>。満タンで<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
         左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
       </div>
-      <div class="weapon-select-title">使用するブキを選択</div>
-      <div class="weapon-options">
-        <div class="weapon-btn active" data-weapon="handgun">
-          <div class="w-name">ハンドガンモード</div>
-          <div class="w-desc">連射が早く扱いやすい標準的なシューター</div>
+      <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span></div>
+
+      <!-- STEP 1：キャラクター選択 -->
+      <div class="select-step show" id="stepChar">
+        <div class="weapon-select-title">① キャラクターを選択</div>
+        <div class="pick-grid" id="charGrid">
+          <div class="pick-card active" data-char="girl">
+            <span class="p-check">✓</span>
+            <img src="%E3%82%AD%E3%83%A3%E3%83%A9%E3%82%AF%E3%82%BF%E3%83%BC%E7%94%BB%E5%83%8F/%E5%A5%B3%E3%81%AE%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9.png" alt="女の子キャラ">
+            <div class="p-name">ガール</div>
+            <div class="p-desc">元気いっぱいのインクリング</div>
+          </div>
+          <div class="pick-card" data-char="boy">
+            <span class="p-check">✓</span>
+            <img src="%E3%82%AD%E3%83%A3%E3%83%A9%E3%82%AF%E3%82%BF%E3%83%BC%E7%94%BB%E5%83%8F/%E7%94%B7%E3%81%AE%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9.png" alt="男の子キャラ">
+            <div class="p-name">ボーイ</div>
+            <div class="p-desc">クールに塗り込むインクリング</div>
+          </div>
         </div>
-        <div class="weapon-btn" data-weapon="shotgun">
-          <div class="w-name">ショットガン</div>
-          <div class="w-desc">一度に5発のインクを拡散発射する近距離用</div>
-        </div>
-        <div class="weapon-btn" data-weapon="rifle">
-          <div class="w-name">ライフルモード</div>
-          <div class="w-desc">射程と威力に優れるがインク消費が大きい</div>
+        <div class="step-btns">
+          <button class="btn small" id="toWeaponBtn">つぎへ ▶</button>
         </div>
       </div>
-      <button class="btn" id="startBtn">スタート</button>
+
+      <!-- STEP 2：ブキ選択 -->
+      <div class="select-step" id="stepWeapon">
+        <div class="weapon-select-title">② ブキを選択</div>
+        <div class="pick-grid" id="weaponGrid">
+          <div class="pick-card active" data-weapon="handgun">
+            <span class="p-check">✓</span>
+            <img src="%E6%AD%A6%E5%99%A8%E7%94%BB%E5%83%8F/%E3%83%8F%E3%83%B3%E3%83%89%E3%82%AC%E3%83%B3.png" alt="ハンドガン">
+            <div class="p-name">ハンドガン</div>
+            <div class="p-desc">連射が早く扱いやすい標準シューター</div>
+          </div>
+          <div class="pick-card" data-weapon="shotgun">
+            <span class="p-check">✓</span>
+            <img src="%E6%AD%A6%E5%99%A8%E7%94%BB%E5%83%8F/%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%E3%82%AC%E3%83%B3.png" alt="ショットガン">
+            <div class="p-name">ショットガン</div>
+            <div class="p-desc">一度に5発を拡散発射する近距離用</div>
+          </div>
+          <div class="pick-card" data-weapon="rifle">
+            <span class="p-check">✓</span>
+            <img src="%E6%AD%A6%E5%99%A8%E7%94%BB%E5%83%8F/%E3%83%A9%E3%82%A4%E3%83%95%E3%83%AB.png" alt="ライフル">
+            <div class="p-name">ライフル</div>
+            <div class="p-desc">射程と威力に優れるがインク消費大</div>
+          </div>
+        </div>
+        <div class="step-btns">
+          <button class="btn small ghost" id="backToCharBtn">◀ もどる</button>
+          <button class="btn" id="startBtn">スタート</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="gauge-container">
+    <img id="hudChar" class="hud-char" alt="">
     <div class="active-weapon" id="activeWeapon">ハンドガン</div>
     <div class="gauge"><div class="gauge-fill" id="inkFill"></div><span class="gauge-txt">INK</span></div>
   </div>
@@ -568,13 +630,14 @@
   // メニュー画面のHTMLを保存しておき、いつでも復元できるようにする
   const MENU_HTML=overlay.innerHTML;
 
-  let selectedWeapon = 'handgun';
+  let selectedWeapon = 'handgun', selectedChar = 'girl';
 
   function resetGame(){
     markObstacles(); ictx.clearRect(0,0,SIZE,SIZE);
     shots=[]; bombs=[]; bombFx=[]; splats=[];
     player=mkChar(300,545,1,false);
     player.weapon = selectedWeapon;
+    player.char = selectedChar;
     bots=[
       mkChar(130,545,1,true),   // 味方CPU
       mkChar(300, 58,2,true),   // 敵CPU
@@ -600,7 +663,14 @@
   }
   function stopBGM(){ bgmTracks.forEach(a=>{ a.pause(); a.currentTime=0; }); }
 
-  function startCountdown(){ resetGame(); overlay.classList.add('hide'); pauseBtn.classList.add('show'); state='countdown'; goTimer=0; startBGM(); }
+  const CHAR_IMG={
+    girl:'%E3%82%AD%E3%83%A3%E3%83%A9%E3%82%AF%E3%82%BF%E3%83%BC%E7%94%BB%E5%83%8F/%E5%A5%B3%E3%81%AE%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9.png',
+    boy:'%E3%82%AD%E3%83%A3%E3%83%A9%E3%82%AF%E3%82%BF%E3%83%BC%E7%94%BB%E5%83%8F/%E7%94%B7%E3%81%AE%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9.png'
+  };
+  function startCountdown(){
+    resetGame(); overlay.classList.add('hide'); pauseBtn.classList.add('show'); state='countdown'; goTimer=0; startBGM();
+    const hc=document.getElementById('hudChar'); if(hc) hc.src=CHAR_IMG[selectedChar]||CHAR_IMG.girl;
+  }
 
   // メニュー画面へ戻る
   function showMenu(){
@@ -660,21 +730,43 @@
     }
   });
 
-  // ---- メニューのボタン（スタート＋ブキ選択）をバインド（メニュー復元時に再呼び出し）----
+  // ---- メニューのボタン（キャラ→ブキの2ステップ）をバインド（メニュー復元時に再呼び出し）----
+  function gotoStep(n){   // 1=キャラ, 2=ブキ
+    const sc=document.getElementById('stepChar'), sw=document.getElementById('stepWeapon');
+    const d1=document.getElementById('dot1'), d2=document.getElementById('dot2');
+    if(!sc||!sw) return;
+    sc.classList.toggle('show', n===1); sw.classList.toggle('show', n===2);
+    if(d1) d1.classList.toggle('on', n===1); if(d2) d2.classList.toggle('on', n===2);
+  }
   function bindMenu(){
-    const sb=document.getElementById('startBtn');
-    if(sb) sb.onclick=startCountdown;
-    document.querySelectorAll('.weapon-btn').forEach(btn => {
-      const pick=(e)=>{
-        if(e) e.preventDefault();
-        document.querySelectorAll('.weapon-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedWeapon = btn.dataset.weapon;
+    // キャラ選択カード
+    document.querySelectorAll('#charGrid .pick-card').forEach(card => {
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#charGrid .pick-card').forEach(c=>c.classList.remove('active'));
+        card.classList.add('active'); selectedChar = card.dataset.char;
       };
-      btn.addEventListener('click', pick);
-      btn.addEventListener('touchstart', pick, {passive:false});
-      if(btn.dataset.weapon===selectedWeapon) btn.classList.add('active'); else btn.classList.remove('active');
+      card.addEventListener('click', pick);
+      card.addEventListener('touchstart', pick, {passive:false});
+      card.classList.toggle('active', card.dataset.char===selectedChar);
     });
+    // ブキ選択カード
+    document.querySelectorAll('#weaponGrid .pick-card').forEach(card => {
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#weaponGrid .pick-card').forEach(c=>c.classList.remove('active'));
+        card.classList.add('active'); selectedWeapon = card.dataset.weapon;
+      };
+      card.addEventListener('click', pick);
+      card.addEventListener('touchstart', pick, {passive:false});
+      card.classList.toggle('active', card.dataset.weapon===selectedWeapon);
+    });
+    // ステップ移動
+    const toW=document.getElementById('toWeaponBtn'), back=document.getElementById('backToCharBtn');
+    if(toW){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; toW.onclick=f; toW.ontouchstart=f; }
+    if(back){ const f=e=>{e&&e.preventDefault();gotoStep(1);}; back.onclick=f; back.ontouchstart=f; }
+    // スタート
+    const sb=document.getElementById('startBtn');
+    if(sb){ const f=e=>{e&&e.preventDefault();startCountdown();}; sb.onclick=f; sb.ontouchstart=f; }
+    gotoStep(1);   // メニューを開くたびキャラ選択から
   }
   bindMenu();
 
