@@ -135,7 +135,7 @@
         左で移動、右でねらって<b>インク発射</b>！<br>
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
         <b>ボムは自分の陣地に乗るとチャージ</b>。満タンで<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
-        左上ボタンで視点切替：<b>3人称（全体）→2人称（やや引きの背後）→1人称（真後ろから前方を見渡す）</b>。
+        左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
       </div>
       <div class="weapon-select-title">使用するブキを選択</div>
       <div class="weapon-options">
@@ -166,7 +166,7 @@
     <button id="bomb"><span class="core" id="bombCore">ボム</span></button>
     <div id="firePad" class="pad fire"><span class="hint">ねらって発射</span></div>
   </div>
-  <div class="tip">PC：カーソル（マウス／トラックパッド）でキャラが追従移動・WASD/矢印でも移動・左クリックまたはShiftキーで発射・スペースキーで溜め投げ<br>1人称／2人称：マウス横で旋回・カーソル上で前進／下で後退</div>
+  <div class="tip">PC：カーソル（マウス／トラックパッド）でキャラが追従移動・WASD/矢印でも移動・左クリックまたはShiftキーで発射・スペースキーで溜め投げ<br>1人称：マウス横またはA/D・←→で旋回／W・↑で前進・S・↓で後退・左クリックで前方へ発射</div>
 </div>
 
 <audio id="bgm0" src="BGM/Boss_Level_Sprint.mp3" loop preload="auto"></audio>
@@ -175,7 +175,7 @@
 <script>
 (function(){
   const SIZE=600, COLS=48, ROWS=48, CELL=SIZE/COLS, ROUND=60;
-  const FP_ZOOM=1.5, TP2_ZOOM=1.3;
+  const FPS_TURN=2.7;   // 一人称のタッチ旋回速度（rad/秒）
   // ---- 一人称（本物の3D遠近）用パラメータ ----
   const FP_FOCAL=430, FP_HORIZON=SIZE*0.40, FP_CAMH=72, FP_BACK=92, FP_NEAR=7, FP_MAXVIEW=660, FP_BLOCKH=66;
   const inkCv=document.getElementById('ink'), gameCv=document.getElementById('game');
@@ -371,22 +371,26 @@
     for(let x=0;x<COLS;x++)for(let y=0;y<ROWS;y++){ if(grid[x][y]===1)o++; else if(grid[x][y]===2)bl++; }
     return {o:o/totalCells,b:bl/totalCells}; }
 
-  // ---- カメラ（3人称 / 2人称＝背後 / 1人称）----
-  let viewMode='tps', camRot=0;
-  const VIEW_ORDER=['tps','tps2','fps'], VIEW_LABEL={tps:'3人称',tps2:'2人称',fps:'1人称'};
+  // ---- カメラ（3人称 / 1人称）----
+  // camRot は一人称での「向き」を表す唯一の基準。fpsHeading は実際にカメラ／キャラが
+  // 前方として向いているワールド角度（ラジアン）。これ1つで移動・描画・照準を統一し、
+  // 向きと移動が互いに影響し合うフィードバック（ぐるぐる回り）を防ぐ。
+  let viewMode='tps', camRot=0, fpsHeading=-Math.PI/2;
+  const VIEW_ORDER=['tps','fps'], VIEW_LABEL={tps:'3人称',fps:'1人称'};
   let viewIdx=0;
-  function isRotated(){ return viewMode==='fps'||viewMode==='tps2'; }
+  function isRotated(){ return viewMode==='fps'; }
   function getCam(){
-    if(viewMode==='fps'&&player)  return {tx:player.x,ty:player.y,zoom:FP_ZOOM, rot:camRot,ax:SIZE/2,ay:SIZE*0.80};
-    if(viewMode==='tps2'&&player) return {tx:player.x,ty:player.y,zoom:TP2_ZOOM,rot:camRot,ax:SIZE/2,ay:SIZE*0.64};
     return {tx:SIZE/2,ty:SIZE/2,zoom:1,rot:0,ax:SIZE/2,ay:SIZE/2};
   }
   function applyCam(){ const c=getCam();
     gctx.translate(c.ax,c.ay); gctx.scale(c.zoom,c.zoom); gctx.rotate(c.rot); gctx.translate(-c.tx,-c.ty); }
+  // 画面方向(dx:右+,dy:下+ =前方) を、現在の向き fpsHeading に合わせたワールド方向へ変換
   function screenDirToWorld(dx,dy){
     if(!isRotated()) return {x:dx,y:dy};
-    const a=-camRot,cos=Math.cos(a),sin=Math.sin(a);
-    return {x:dx*cos-dy*sin, y:dx*sin+dy*cos};
+    // 画面の「上(-dy)」が前方(fpsHeading)。右(+dx)はその右手方向。
+    const fx=Math.cos(fpsHeading), fy=Math.sin(fpsHeading);   // 前方
+    const rx=-fy, ry=fx;                                       // 右方向
+    return {x:rx*dx - fx*dy, y:ry*dx - fy*dy};
   }
   function lerpAngle(a,t,f){ let d=t-a; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; return a+d*f; }
 
@@ -548,7 +552,7 @@
   function toggleView(){
     viewIdx=(viewIdx+1)%VIEW_ORDER.length; viewMode=VIEW_ORDER[viewIdx];
     viewBtn.textContent=VIEW_LABEL[viewMode];
-    if(isRotated()&&player) camRot=-Math.PI/2-Math.atan2(player.aimy,player.aimx);
+    if(isRotated()&&player){ fpsHeading=Math.atan2(player.aimy,player.aimx); camRot=-fpsHeading-Math.PI/2; }
   }
   viewBtn.addEventListener('click',toggleView);
   viewBtn.addEventListener('touchstart',e=>{e.preventDefault();toggleView();},{passive:false});
@@ -573,7 +577,7 @@
     allChars.forEach(declip);        // 念のため障害物から押し出す
     bots.forEach(pickTarget);
     bombGauge=0; throwing=false; throwPower=0;
-    camRot=-Math.PI/2-Math.atan2(player.aimy,player.aimx);
+    fpsHeading=Math.atan2(player.aimy,player.aimx); camRot=-fpsHeading-Math.PI/2;
     timeLeft=ROUND; timerEl.textContent=ROUND; timerEl.classList.remove('warn');
     allChars.forEach(c=>splat(c.x,c.y,c.team,20));
   }
@@ -629,50 +633,47 @@
     if(keys['arrowup']||keys['w'])mdy-=1; if(keys['arrowdown']||keys['s'])mdy+=1;
 
     // Mouse/Trackpad movement (cursor follow). タッチ操作中は無効（スティックで動かすため）。
-    if(!usingTouch && !moveStick.active && mouseOverField){
-      if(isRotated()){
-        // 回転ビュー（1人称／2人称）：マウス横移動でカメラを旋回（loop側で処理）し、
-        // カーソルの上下位置で「カメラの向きに沿った前進／後退」を行う。
-        // 横方向の成分を移動に混ぜないことで、旋回との干渉による進行方向のブレを防ぐ。
-        if(mouseY < SIZE*0.50) mdy -= 1;        // カーソルが上側 → 前進
-        else if(mouseY > SIZE*0.72) mdy += 1;   // カーソルが下側 → 後退
-      } else {
-        // 見下ろし視点：カーソルへ歩く。近くにデッドゾーンを設け、止まって狙えるようにする。
-        const rx=mouseX-player.x, ry=mouseY-player.y, dist=Math.hypot(rx,ry);
-        if(dist > 18){ mdx += rx/dist; mdy += ry/dist; }
-      }
+    if(!usingTouch && !moveStick.active && mouseOverField && !isRotated()){
+      // 見下ろし視点：カーソルへ歩く。近くにデッドゾーンを設け、止まって狙えるようにする。
+      const rx=mouseX-player.x, ry=mouseY-player.y, dist=Math.hypot(rx,ry);
+      if(dist > 18){ mdx += rx/dist; mdy += ry/dist; }
     }
 
+    // 一人称：左右(A/D・スティック横)は旋回に使うので移動からは除外し、前後のみで進む。
+    if(isRotated()) mdx=0;
     let mm=Math.hypot(mdx,mdy); if(mm>1){mdx/=mm;mdy/=mm;}
     const moving = mm>0.06;
+    // 一人称では mdy=前後。screenDirToWorld が向き(fpsHeading)へ回す。
     const wm=screenDirToWorld(mdx,mdy);
     let dx=wm.x, dy=wm.y;
 
     let firing=false,ax=player.aimx,ay=player.aimy;
-    if(fireStick.active){ const fm=Math.hypot(fireStick.dx,fireStick.dy);
-      if(fm>0.35){ const wa=screenDirToWorld(fireStick.dx/fm,fireStick.dy/fm); ax=wa.x; ay=wa.y; firing=true; } }
-    
-    // PC/Mouse aiming: when mobile touch sticks are not active, continuously aim towards the mouse pointer
-    // タッチ操作中はマウス追従照準を使わない。
-    const pcAiming = !usingTouch && !moveStick.active && !fireStick.active;
-    let pcAimX = player.aimx, pcAimY = player.aimy;
-    if(pcAiming){
-      if(isRotated()){
-        // In rotated views (FPS/TPS2), the aiming direction is directly forward along the camera's view
-        // to avoid infinite spinning feedback loops when mouse is off-center.
-        pcAimX = Math.cos(-camRot - Math.PI/2);
-        pcAimY = Math.sin(-camRot - Math.PI/2);
-      }
-      else {
+
+    if(isRotated()){
+      // ===== 一人称：照準は常に「向いている前方」。移動では曲がらない =====
+      const fwdX=Math.cos(fpsHeading), fwdY=Math.sin(fpsHeading);
+      player.aimx=fwdX; player.aimy=fwdY;
+      ax=fwdX; ay=fwdY;
+      // 発射：右スティック / 左クリック / Shift
+      if(fireStick.active && Math.hypot(fireStick.dx,fireStick.dy)>0.35) firing=true;
+      if((!usingTouch && mouseDown) || keys['shift']) firing=true;
+      // エイムアシストは「弾の向き」だけ寄せる（向き=fpsHeadingは動かさない）
+      const aa=assistAim(player,fwdX,fwdY);
+      if(aa){ ax=aa.x; ay=aa.y; }
+    } else {
+      // ===== 見下ろし視点（従来どおり）=====
+      if(fireStick.active){ const fm=Math.hypot(fireStick.dx,fireStick.dy);
+        if(fm>0.35){ const wa=screenDirToWorld(fireStick.dx/fm,fireStick.dy/fm); ax=wa.x; ay=wa.y; firing=true; } }
+      const pcAiming = !usingTouch && !moveStick.active && !fireStick.active;
+      let pcAimX = player.aimx, pcAimY = player.aimy;
+      if(pcAiming){
         const mx=mouseX-player.x, my=mouseY-player.y;
         const d=Math.hypot(mx,my)||1; pcAimX=mx/d; pcAimY=my/d;
       }
-    }
-
-    const isPcFiring = (!usingTouch && mouseDown) || keys['shift'];
-    if(isPcFiring){
-      ax = pcAimX; ay = pcAimY;
-      firing = true;
+      const isPcFiring = (!usingTouch && mouseDown) || keys['shift'];
+      if(isPcFiring){ ax = pcAimX; ay = pcAimY; firing = true; }
+      // 後段の向き決定で使う
+      player._pcAiming=pcAiming; player._pcAimX=pcAimX; player._pcAimY=pcAimY;
     }
 
     const own=cellOwnerAt(player.x,player.y);
@@ -689,24 +690,26 @@
     moveChar(player,dx*speed,dy*speed);
     if(!player.swim && moving) paintCircle(player.x,player.y,1,7);
 
-    if(firing){ player.aimx=ax; player.aimy=ay; }
-    else if(moving){
-      if(pcAiming && !player.swim){
-        // Strafing: Face the mouse while moving on foot
-        player.aimx=pcAimX; player.aimy=pcAimY;
-      } else {
-        const ml=Math.hypot(dx,dy)||1; player.aimx=dx/ml; player.aimy=dy/ml;
+    if(isRotated()){
+      // 一人称：向き(player.aim)は前段で fpsHeading に固定済み。発射方向(ax,ay)はアシスト適用済み。
+      if(firing) fire(player,ax,ay);
+    } else {
+      const pcAiming=player._pcAiming, pcAimX=player._pcAimX, pcAimY=player._pcAimY;
+      if(firing){ player.aimx=ax; player.aimy=ay; }
+      else if(moving){
+        if(pcAiming && !player.swim){
+          player.aimx=pcAimX; player.aimy=pcAimY;   // Strafing: face mouse while moving on foot
+        } else {
+          const ml=Math.hypot(dx,dy)||1; player.aimx=dx/ml; player.aimy=dy/ml;
+        }
+      } else if(pcAiming){
+        player.aimx=pcAimX; player.aimy=pcAimY;      // Face the mouse while standing still
       }
-    } else if(pcAiming){
-      // Face the mouse while standing still
-      player.aimx=pcAimX; player.aimy=pcAimY;
+      // エイムアシスト：射程・視界内の最も近い敵へ照準を寄せる（弾の吸い付き）
+      const aa=assistAim(player,player.aimx,player.aimy);
+      if(aa){ player.aimx=aa.x; player.aimy=aa.y; }
+      if(firing) fire(player,player.aimx,player.aimy);
     }
-
-    // エイムアシスト：射程・視界内の最も近い敵へ照準を寄せる（弾の吸い付き）
-    const aa=assistAim(player,player.aimx,player.aimy);
-    if(aa){ player.aimx=aa.x; player.aimy=aa.y; }
-
-    if(firing) fire(player,player.aimx,player.aimy);
     if(player.fireCd>0) player.fireCd-=dt;
     player.hitT+=dt; if(player.hitT>1.2&&player.hp<player.maxHp) player.hp=Math.min(player.maxHp,player.hp+22*dt);
     if(player.inv>0) player.inv-=dt;
@@ -881,7 +884,7 @@
 
   // ---- 一人称：本物の3D遠近描画 ----
   function renderFPS(t){
-    const fa=Math.atan2(player.aimy,player.aimx);
+    const fa=fpsHeading;
     const cs=Math.cos(fa), sn=Math.sin(fa);
     const camX=player.x - cs*FP_BACK, camY=player.y - sn*FP_BACK;
 
@@ -1051,38 +1054,18 @@
       if(sec<=10) timerEl.classList.add('warn'); if(timeLeft<=0) endGame();
     } else { updateSplats(dt); }
 
-    if(isRotated()&&player&&player.alive){
-      const now = performance.now();
-      const pcAiming = !usingTouch && !moveStick.active && !fireStick.active;
-      if(pcAiming){
-        // Rotate camera directly based on mouse/trackpad delta
-        if(Math.abs(mouseDeltaX) > 0.01){
-          camRot -= mouseDeltaX * 0.0035;
-          mouseDeltaX = 0;
-        }
-        // エイムアシスト（カメラ磁力）：前方の射程・視界内に敵がいれば、照準を少しその敵へ寄せる
-        const fwdX=Math.cos(-camRot-Math.PI/2), fwdY=Math.sin(-camRot-Math.PI/2);
-        const w=WEAPONS[player.weapon]||WEAPONS.handgun;
-        const tgt=nearestEnemyInCone(player,fwdX,fwdY,AIM_CONE,w.range*1.05);
-        if(tgt){
-          const tCam = -Math.atan2(tgt.o.y-player.y, tgt.o.x-player.x) - Math.PI/2;
-          camRot = lerpAngle(camRot, tCam, CAM_MAGNET);
-        } else if(now - lastCameraMoveTime > 800){
-          // Auto-align camera with movement direction when not using mouse/trackpad for 800ms
-          let mdx=0,mdy=0;
-          if(keys['arrowleft']||keys['a'])mdx-=1; if(keys['arrowright']||keys['d'])mdx+=1;
-          if(keys['arrowup']||keys['w'])mdy-=1; if(keys['arrowdown']||keys['s'])mdy+=1;
-          const mm=Math.hypot(mdx,mdy);
-          if(mm > 0.06){
-            const wm=screenDirToWorld(mdx/mm, mdy/mm);
-            const moveAngle = -Math.PI/2 - Math.atan2(wm.y, wm.x);
-            camRot = lerpAngle(camRot, moveAngle, 0.04);
-          }
-        }
-      } else {
-        // Mobile / Touch controls: smoothly face player aim
-        camRot=lerpAngle(camRot,-Math.PI/2-Math.atan2(player.aimy,player.aimx),0.16);
-      }
+    if(isRotated()&&player){
+      // 一人称の旋回は fpsHeading のみを動かす（移動やエイムアシストは向きに干渉しない）。
+      let turn=0;
+      // PC：マウス／トラックパッドの横移動で旋回
+      if(!usingTouch && Math.abs(mouseDeltaX)>0.01){ turn += mouseDeltaX*0.0045; mouseDeltaX=0; }
+      // PC：A/D・←/→ でも旋回（前後はW/Sで移動）
+      if(keys['arrowleft']||keys['a']) turn -= FPS_TURN*dt;
+      if(keys['arrowright']||keys['d']) turn += FPS_TURN*dt;
+      // タッチ：左スティックの横振りで旋回
+      if(moveStick.active) turn += moveStick.dx*FPS_TURN*dt;
+      fpsHeading += turn;
+      camRot = -fpsHeading - Math.PI/2;   // 描画互換（未使用だが保持）
     } else {
       mouseDeltaX = 0;
     }
@@ -1100,20 +1083,6 @@
         if(player){ bots.forEach(b=>drawChar(b,t)); drawChar(player,t); }
       gctx.restore();
 
-      if(isRotated()){
-        const g=gctx.createLinearGradient(0,0,0,SIZE*0.42);
-        g.addColorStop(0,'rgba(8,8,18,0.55)'); g.addColorStop(1,'rgba(8,8,18,0)');
-        gctx.fillStyle=g; gctx.fillRect(0,0,SIZE,SIZE*0.42);
-
-        // Draw crosshair for 2nd person (TPS2) view
-        if(viewMode === 'tps2' && player && player.alive){
-          gctx.save(); gctx.strokeStyle='rgba(255,255,255,.75)'; gctx.lineWidth=2;
-          const cx=SIZE/2, cyc=SIZE*0.4;
-          gctx.beginPath(); gctx.arc(cx,cyc,9,0,Math.PI*2); gctx.moveTo(cx-15,cyc); gctx.lineTo(cx-4,cyc);
-          gctx.moveTo(cx+4,cyc); gctx.lineTo(cx+15,cyc); gctx.moveTo(cx,cyc-15); gctx.lineTo(cx,cyc-4);
-          gctx.moveTo(cx,cyc+4); gctx.lineTo(cx,cyc+15); gctx.stroke(); gctx.restore();
-        }
-      }
     }
 
     updateHUD();
