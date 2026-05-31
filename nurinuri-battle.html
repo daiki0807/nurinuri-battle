@@ -136,6 +136,22 @@
   .pick-card.active .p-check{display:flex;}
   .step-btns{display:flex;gap:10px;margin-top:2px;}
   .btn.small{font-size:14px;padding:7px 18px;}
+
+  /* 生成画像を使ったステータス画面 */
+  .status-preview{position:relative;width:min(100%,350px);aspect-ratio:1672/941;flex:none;perspective:720px;}
+  .status-frame{position:absolute;inset:0;border:3px solid #000;border-radius:14px;overflow:hidden;background:#07152a;
+    box-shadow:0 5px 0 #000,0 12px 22px rgba(0,0,0,.5);transform:rotateX(var(--preview-x,0deg)) rotateY(var(--preview-y,0deg));
+    transition:transform .18s ease,box-shadow .18s ease;}
+  .status-frame::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 20%,rgba(255,255,255,.18) 43%,transparent 58%);
+    transform:translateX(-140%);animation:statusShine 4s ease-in-out infinite;pointer-events:none;}
+  .status-frame.swap{animation:statusSwap .34s ease both;}
+  .status-image{width:100%;height:100%;display:block;object-fit:cover;}
+  .status-caption{position:absolute;left:9px;bottom:7px;padding:3px 7px;border:2px solid #000;border-radius:8px;
+    background:rgba(8,8,16,.82);font-family:"Dela Gothic One",cursive;font-size:9px;color:var(--yellow);
+    text-shadow:1px 1px 0 #000;pointer-events:none;}
+  @keyframes statusShine{0%,58%{transform:translateX(-140%);}82%,100%{transform:translateX(140%);}}
+  @keyframes statusSwap{0%{opacity:.35;transform:scale(.9) rotateY(-10deg);}100%{opacity:1;transform:scale(1) rotateY(0);}}
+  @media (max-height:760px){.status-preview{width:min(100%,300px)}}
 </style>
 </head>
 <body>
@@ -165,6 +181,12 @@
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
         <b>ボムは自分の陣地に乗るとチャージ</b>。満タンで<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
         左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
+      </div>
+      <div class="status-preview" id="statusPreview">
+        <div class="status-frame" id="statusFrame">
+          <img class="status-image" id="statusImage" alt="選択中のキャラクターとブキのステータス画面">
+          <span class="status-caption" id="statusCaption">ガール｜ハンドガン</span>
+        </div>
       </div>
       <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span></div>
 
@@ -667,6 +689,37 @@
     girl:'%E3%82%AD%E3%83%A3%E3%83%A9%E3%82%AF%E3%82%BF%E3%83%BC%E7%94%BB%E5%83%8F/%E5%A5%B3%E3%81%AE%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9.png',
     boy:'%E3%82%AD%E3%83%A3%E3%83%A9%E3%82%AF%E3%82%BF%E3%83%BC%E7%94%BB%E5%83%8F/%E7%94%B7%E3%81%AE%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9.png'
   };
+  const STATUS_IMG={
+    girl:{
+      handgun:'%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E7%94%BB%E9%9D%A2/%E5%A5%B3%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9_%E3%83%8F%E3%83%B3%E3%83%89%E3%82%AC%E3%83%B3%E8%A3%85%E5%82%99.png',
+      shotgun:'%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E7%94%BB%E9%9D%A2/%E5%A5%B3%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9_%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%E3%82%AC%E3%83%B3%E8%A3%85%E5%82%99.png',
+      rifle:'%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E7%94%BB%E9%9D%A2/%E5%A5%B3%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9_%E3%83%A9%E3%82%A4%E3%83%95%E3%83%AB%E8%A3%85%E5%82%99.png'
+    },
+    boy:{
+      handgun:'%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E7%94%BB%E9%9D%A2/%E7%94%B7%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9_%E3%83%8F%E3%83%B3%E3%83%89%E3%82%AC%E3%83%B3%E8%A3%85%E5%82%99.png',
+      shotgun:'%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E7%94%BB%E9%9D%A2/%E7%94%B7%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9_%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%E3%82%AC%E3%83%B3%E8%A3%85%E5%82%99.png',
+      rifle:'%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E7%94%BB%E9%9D%A2/%E7%94%B7%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9_%E3%83%A9%E3%82%A4%E3%83%95%E3%83%AB%E8%A3%85%E5%82%99.png'
+    }
+  };
+  function updateLoadoutPreview(animate=false){
+    const statusImage=document.getElementById('statusImage'), caption=document.getElementById('statusCaption');
+    const frame=document.getElementById('statusFrame'), charImages=STATUS_IMG[selectedChar]||STATUS_IMG.girl;
+    if(statusImage) statusImage.src=charImages[selectedWeapon]||charImages.handgun;
+    if(caption) caption.textContent=(selectedChar==='boy'?'ボーイ':'ガール')+'｜'+(WEAPONS[selectedWeapon]||WEAPONS.handgun).name;
+    if(animate&&frame){
+      frame.classList.remove('swap'); void frame.offsetWidth; frame.classList.add('swap');
+      setTimeout(()=>frame.classList.remove('swap'),360);
+    }
+  }
+  function bindLoadoutTilt(){
+    const preview=document.getElementById('statusPreview'), frame=document.getElementById('statusFrame');
+    if(!preview||!frame) return;
+    preview.onpointermove=e=>{
+      const r=preview.getBoundingClientRect(), x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;
+      frame.style.setProperty('--preview-y',(x*8)+'deg'); frame.style.setProperty('--preview-x',(-y*5)+'deg');
+    };
+    preview.onpointerleave=()=>{ frame.style.removeProperty('--preview-y'); frame.style.removeProperty('--preview-x'); };
+  }
   function startCountdown(){
     resetGame(); overlay.classList.add('hide'); pauseBtn.classList.add('show'); state='countdown'; goTimer=0; startBGM();
     const hc=document.getElementById('hudChar'); if(hc) hc.src=CHAR_IMG[selectedChar]||CHAR_IMG.girl;
@@ -743,7 +796,7 @@
     document.querySelectorAll('#charGrid .pick-card').forEach(card => {
       const pick=(e)=>{ if(e) e.preventDefault();
         document.querySelectorAll('#charGrid .pick-card').forEach(c=>c.classList.remove('active'));
-        card.classList.add('active'); selectedChar = card.dataset.char;
+        card.classList.add('active'); selectedChar = card.dataset.char; updateLoadoutPreview(true);
       };
       card.addEventListener('click', pick);
       card.addEventListener('touchstart', pick, {passive:false});
@@ -753,7 +806,7 @@
     document.querySelectorAll('#weaponGrid .pick-card').forEach(card => {
       const pick=(e)=>{ if(e) e.preventDefault();
         document.querySelectorAll('#weaponGrid .pick-card').forEach(c=>c.classList.remove('active'));
-        card.classList.add('active'); selectedWeapon = card.dataset.weapon;
+        card.classList.add('active'); selectedWeapon = card.dataset.weapon; updateLoadoutPreview(true);
       };
       card.addEventListener('click', pick);
       card.addEventListener('touchstart', pick, {passive:false});
@@ -766,6 +819,7 @@
     // スタート
     const sb=document.getElementById('startBtn');
     if(sb){ const f=e=>{e&&e.preventDefault();startCountdown();}; sb.onclick=f; sb.ontouchstart=f; }
+    updateLoadoutPreview(); bindLoadoutTilt();
     gotoStep(1);   // メニューを開くたびキャラ選択から
   }
   bindMenu();
