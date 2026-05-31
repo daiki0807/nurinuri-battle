@@ -169,6 +169,9 @@
   <div class="tip">PC：カーソル（マウス／トラックパッド）でキャラが追従移動・WASD/矢印でも移動・左クリックまたはShiftキーで発射・スペースキーで溜め投げ<br>1人称／2人称：マウス横で旋回・カーソル上で前進／下で後退</div>
 </div>
 
+<audio id="bgm0" src="BGM/Boss_Level_Sprint.mp3" loop preload="auto"></audio>
+<audio id="bgm1" src="BGM/Turbo_Victory_Lap.mp3" loop preload="auto"></audio>
+
 <script>
 (function(){
   const SIZE=600, COLS=48, ROWS=48, CELL=SIZE/COLS, ROUND=60;
@@ -574,8 +577,21 @@
     timeLeft=ROUND; timerEl.textContent=ROUND; timerEl.classList.remove('warn');
     allChars.forEach(c=>splat(c.x,c.y,c.team,20));
   }
-  function startCountdown(){ resetGame(); overlay.classList.add('hide'); state='countdown'; goTimer=0; }
+  // ---- BGM（30秒ループ・スタートごとに2曲を交互再生）----
+  const bgmTracks=[document.getElementById('bgm0'), document.getElementById('bgm1')];
+  let bgmIdx=-1;
+  function startBGM(){
+    bgmIdx=(bgmIdx+1)%bgmTracks.length;
+    bgmTracks.forEach((a,i)=>{ if(i!==bgmIdx){ a.pause(); a.currentTime=0; } });
+    const cur=bgmTracks[bgmIdx];
+    cur.currentTime=0; cur.volume=0.5;
+    cur.play().catch(()=>{});   // 自動再生がブロックされても無視
+  }
+  function stopBGM(){ bgmTracks.forEach(a=>{ a.pause(); a.currentTime=0; }); }
+
+  function startCountdown(){ resetGame(); overlay.classList.add('hide'); state='countdown'; goTimer=0; startBGM(); }
   function endGame(){
+    stopBGM();
     state='result'; const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
     const win=op>bp, draw=op===bp;
     overlay.innerHTML=
