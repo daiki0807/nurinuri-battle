@@ -416,17 +416,22 @@
   // ---- ボム（チャージ＆溜め投げ）----
   let bombGauge=0, throwing=false, throwPower=0;
   const BOMB_MIN=80, BOMB_MAX=325, THROW_FULL=0.7, BOMB_DAMAGE=80, BOMB_DAMAGE_RADIUS=92, BOMB_IMPACT_RADIUS=18;
-  function bombPress(){ if(state!=='play'||!player||!player.alive) return; if(bombGauge>=1){ throwing=true; throwPower=0; } }
+  // ボムラッシュ：拾うと一定時間ボム投げ放題（チャージ・消費無視）
+  let bombRush=0;
+  const BOMB_RUSH_DURATION=15;
+  // 投げられるか：通常はゲージ満タン、ラッシュ中はいつでも
+  function canThrow(){ return bombGauge>=1 || bombRush>0; }
+  function bombPress(){ if(state!=='play'||!player||!player.alive) return; if(canThrow()){ throwing=true; throwPower=0; } }
   function bombRelease(){ if(throwing){ throwBomb(throwPower); throwing=false; throwPower=0; } }
   function throwBomb(power){
-    if(bombGauge<1) return;
+    if(!canThrow()) return;
     const dist=BOMB_MIN+(BOMB_MAX-BOMB_MIN)*power;
     const len=Math.hypot(player.aimx,player.aimy)||1;
     const dx=player.aimx/len, dy=player.aimy/len;
     let tx=player.x+dx*dist, ty=player.y+dy*dist;
     tx=Math.max(12,Math.min(SIZE-12,tx)); ty=Math.max(12,Math.min(SIZE-12,ty));
     bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650,team:player.team});
-    bombGauge=0;
+    if(bombRush<=0) bombGauge=0;   // ラッシュ中はゲージを消費しない
   }
   function explodeBomb(b,x=b.tx,y=b.ty){
     splat(x,y,b.team,80);
@@ -434,6 +439,27 @@
     for(const o of allChars){
       if(o.team===b.team || !o.alive) continue;
       if(Math.hypot(o.x-x,o.y-y)<BOMB_DAMAGE_RADIUS+o.r) damage(o,BOMB_DAMAGE);
+    }
+  }
+
+  // ---- アイテム（ボムラッシュ）----
+  let pickups=[], itemSpawnT=0;
+  const ITEM_SPAWN_INTERVAL=20, ITEM_PICKUP_R=22;
+  function spawnBombRushItem(){
+    for(let k=0;k<50;k++){
+      const x=70+Math.random()*(SIZE-140), y=70+Math.random()*(SIZE-140);
+      if(inObstacle(x,y,20)) continue;
+      pickups.push({x,y,type:'bombRush',t:0});
+      return;
+    }
+  }
+  function updatePickups(dt){
+    // 場に1個も無いときだけ、間隔をおいて出現
+    if(pickups.length===0){ itemSpawnT-=dt; if(itemSpawnT<=0){ spawnBombRushItem(); itemSpawnT=ITEM_SPAWN_INTERVAL; } }
+    for(let i=pickups.length-1;i>=0;i--){ const it=pickups[i]; it.t+=dt;
+      if(player&&player.alive&&Math.hypot(player.x-it.x,player.y-it.y)<ITEM_PICKUP_R+player.r){
+        bombRush=BOMB_RUSH_DURATION; bombGauge=1; pickups.splice(i,1);
+      }
     }
   }
 
@@ -656,7 +682,7 @@
 
   function resetGame(){
     markObstacles(); ictx.clearRect(0,0,SIZE,SIZE);
-    shots=[]; bombs=[]; bombFx=[]; splats=[];
+    shots=[]; bombs=[]; bombFx=[]; splats=[]; pickups=[]; itemSpawnT=8; bombRush=0;
     player=mkChar(300,545,1,false);
     player.weapon = selectedWeapon;
     player.char = selectedChar;
@@ -882,7 +908,8 @@
     if(!firing && own===player.team){ mult=1.5; player.ink=Math.min(player.maxInk,player.ink+48*dt); player.swim=true; }
     else if(own!==player.team && own!==0){ mult=0.58; }
     else { player.ink=Math.min(player.maxInk,player.ink+10*dt); }
-    if(own===player.team) bombGauge=Math.min(1,bombGauge+dt/4.5);
+    if(bombRush>0){ bombRush=Math.max(0,bombRush-dt); bombGauge=1; }   // ラッシュ中は常に満タン
+    else if(own===player.team) bombGauge=Math.min(1,bombGauge+dt/4.5);
     else bombGauge=Math.min(1,bombGauge+dt/12);
     if(throwing) throwPower=Math.min(1,throwPower+dt/THROW_FULL);
 
@@ -1068,6 +1095,19 @@
     gctx.strokeStyle='rgba(255,230,0,.8)';gctx.lineWidth=5;gctx.beginPath();gctx.arc(f.x,f.y,f.r,0,Math.PI*2);gctx.stroke(); } }
   function drawFlyingSplats(){ for(const p of splats){ gctx.fillStyle=COLOR[p.team];
     gctx.beginPath();gctx.arc(p.x,p.y,3,0,Math.PI*2);gctx.fill(); } }
+  function drawPickups(){ for(const it of pickups){
+    const bob=Math.sin(it.t*3)*3, pulse=0.5+0.5*Math.sin(it.t*5);
+    gctx.save();
+    gctx.fillStyle='rgba(0,0,0,.28)';gctx.beginPath();gctx.ellipse(it.x,it.y+8,13,5,0,0,Math.PI*2);gctx.fill();
+    gctx.translate(it.x,it.y-10+bob);
+    gctx.shadowColor='rgba(255,170,0,'+(0.55+0.45*pulse)+')';gctx.shadowBlur=20;
+    gctx.fillStyle='#ff9000';gctx.strokeStyle='#fff';gctx.lineWidth=2.5;
+    gctx.beginPath();gctx.arc(0,0,12,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.shadowBlur=0;
+    gctx.fillStyle='#fff';gctx.font='bold 15px sans-serif';gctx.textAlign='center';gctx.textBaseline='middle';
+    gctx.fillText('∞',0,1);
+    gctx.restore();
+  } }
   function drawLandingIndicator(){
     if(!throwing||!player||!player.alive) return;
     const dist=BOMB_MIN+(BOMB_MAX-BOMB_MIN)*throwPower;
@@ -1188,6 +1228,7 @@
     for(const s of shots){ const p=proj(s.x,s.y,6); if(p) items.push({k:'shot',s,p,depth:p.depth}); }
     for(const b of bombs){ const p=proj(b.x,b.y,b.arc+8); if(p) items.push({k:'bomb',b,p,depth:p.depth}); }
     for(const f of bombFx){ const p=proj(f.x,f.y,2); if(p) items.push({k:'fx',f,p,depth:p.depth}); }
+    for(const it of pickups){ const p=proj(it.x,it.y,12); if(p) items.push({k:'item',it,p,depth:p.depth}); }
     items.sort((a,b)=>b.depth-a.depth);
     for(const it of items){
       if(it.k==='obs') drawObstacle3D(it.o);
@@ -1204,6 +1245,14 @@
       else if(it.k==='fx'){ const p=it.p;
         gctx.strokeStyle='rgba(255,230,0,.8)'; gctx.lineWidth=Math.max(2,5*p.scale);
         gctx.beginPath(); gctx.arc(p.sx,p.sy,it.f.r*p.scale,0,Math.PI*2); gctx.stroke(); }
+      else if(it.k==='item'){ const p=it.p, pulse=0.5+0.5*Math.sin(it.it.t*5), r=Math.max(4,12*p.scale);
+        gctx.save();
+        gctx.shadowColor='rgba(255,170,0,'+(0.55+0.45*pulse)+')'; gctx.shadowBlur=16*p.scale;
+        gctx.fillStyle='#ff9000'; gctx.strokeStyle='#fff'; gctx.lineWidth=2.5;
+        gctx.beginPath(); gctx.arc(p.sx,p.sy,r,0,Math.PI*2); gctx.fill(); gctx.stroke();
+        gctx.shadowBlur=0; gctx.fillStyle='#fff'; gctx.font='bold '+Math.max(8,15*p.scale)+'px sans-serif';
+        gctx.textAlign='center'; gctx.textBaseline='middle'; gctx.fillText('∞',p.sx,p.sy+1);
+        gctx.restore(); }
     }
 
     // ボム投げの着弾予測
@@ -1234,11 +1283,15 @@
       document.getElementById('activeWeapon').textContent = WEAPONS[player.weapon].name + (player.weapon === 'handgun' ? 'モード' : (player.weapon === 'rifle' ? 'モード' : ''));
     }
     let ringVal, ringColor;
-    if(throwing){ ringVal=throwPower; ringColor='var(--orange)'; bombCore.textContent=Math.round(throwPower*100)+'%'; }
+    if(bombRush>0){
+      // ボムラッシュ中：残り秒数を表示、リングは残り時間の割合
+      ringVal=bombRush/BOMB_RUSH_DURATION; ringColor='var(--orange)';
+      bombCore.textContent= throwing ? Math.round(throwPower*100)+'%' : '∞'+Math.ceil(bombRush);
+    } else if(throwing){ ringVal=throwPower; ringColor='var(--orange)'; bombCore.textContent=Math.round(throwPower*100)+'%'; }
     else { ringVal=bombGauge; ringColor='var(--yellow)'; bombCore.textContent= bombGauge>=1?'ボム':Math.round(bombGauge*100)+'%'; }
     const deg=ringVal*360;
     bombBtn.style.background='conic-gradient('+ringColor+' '+deg+'deg, rgba(255,255,255,.12) '+deg+'deg)';
-    if(bombGauge>=1) bombBtn.classList.add('ready'); else bombBtn.classList.remove('ready');
+    if(bombGauge>=1||bombRush>0) bombBtn.classList.add('ready'); else bombBtn.classList.remove('ready');
   }
 
   // ---- ループ ----
@@ -1250,7 +1303,7 @@
       goText.textContent=lab[idx]; goText.style.opacity=1-(goTimer-idx); goText.style.transform='scale('+(1+(goTimer-idx)*0.4)+')';
       if(goTimer>=3.7){state='play';last=ts;goText.style.opacity=0;} }
     else if(state==='play'){
-      updatePlayer(dt); bots.forEach(b=>updateBot(b,dt)); updateShots(dt); updateBombs(dt); updateSplats(dt);
+      updatePlayer(dt); bots.forEach(b=>updateBot(b,dt)); updateShots(dt); updateBombs(dt); updateSplats(dt); updatePickups(dt);
       timeLeft-=dt; if(timeLeft<0)timeLeft=0; const sec=Math.ceil(timeLeft); timerEl.textContent=sec;
       if(sec<=10) timerEl.classList.add('warn'); if(timeLeft<=0) endGame();
     } else if(state==='pause'){
@@ -1282,7 +1335,7 @@
       gctx.save(); applyCam();
         gctx.fillStyle='#14141d'; gctx.fillRect(0,0,SIZE,SIZE);
         gctx.drawImage(inkCv,0,0);
-        drawObstacles(); drawFlyingSplats(); drawShots(); drawBombs(); drawBombFx(); drawLandingIndicator();
+        drawObstacles(); drawFlyingSplats(); drawShots(); drawBombs(); drawBombFx(); drawPickups(); drawLandingIndicator();
         if(player){ bots.forEach(b=>drawChar(b,t)); drawChar(player,t); }
       gctx.restore();
 
