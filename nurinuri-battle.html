@@ -136,6 +136,21 @@
   .pick-card.active .p-check{display:flex;}
   .step-btns{display:flex;gap:10px;margin-top:2px;}
   .btn.small{font-size:14px;padding:7px 18px;}
+  /* アイテムのオン／オフ切替 */
+  .item-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(100%,360px);
+    background:rgba(255,255,255,.05);border:3px solid #000;border-radius:14px;padding:9px 13px;margin-top:2px;
+    box-shadow:0 4px 0 #000;}
+  .item-toggle .it-info{display:flex;align-items:center;gap:10px;text-align:left;}
+  .item-toggle .it-icon{font-size:22px;font-weight:700;color:#ff9000;width:30px;height:30px;flex:none;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;background:rgba(255,144,0,.18);text-shadow:0 0 8px rgba(255,144,0,.7);}
+  .item-toggle .it-name{font-family:"Dela Gothic One",cursive;font-size:12px;color:#fff;}
+  .item-toggle .it-desc{font-size:9.5px;color:#cfcfe0;margin-top:2px;}
+  .switch{position:relative;width:50px;height:28px;border-radius:999px;background:#3a3a48;flex:none;cursor:pointer;
+    transition:background .18s;border:2px solid #000;}
+  .switch .knob{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;
+    transition:left .18s;box-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .switch.on{background:var(--orange,#ff6a00);}
+  .switch.on .knob{left:26px;}
 
   /* 生成画像を使ったステータス画面 */
   .status-preview{position:relative;width:min(100%,350px);aspect-ratio:1672/941;flex:none;perspective:720px;}
@@ -234,6 +249,16 @@
             <div class="p-name">ライフル</div>
             <div class="p-desc">射程と威力に優れるがインク消費大</div>
           </div>
+        </div>
+        <div class="item-toggle" id="bombRushToggle">
+          <div class="it-info">
+            <span class="it-icon">∞</span>
+            <div class="it-text">
+              <div class="it-name">ボムラッシュアイテム</div>
+              <div class="it-desc">拾うと15秒間ボム投げ放題</div>
+            </div>
+          </div>
+          <span class="switch on" id="bombRushSwitch"><span class="knob"></span></span>
         </div>
         <div class="step-btns">
           <button class="btn small ghost" id="backToCharBtn">◀ もどる</button>
@@ -443,7 +468,7 @@
   }
 
   // ---- アイテム（ボムラッシュ）----
-  let pickups=[], itemSpawnT=0;
+  let pickups=[], itemSpawnT=0, bombRushItemEnabled=true;
   const ITEM_SPAWN_INTERVAL=20, ITEM_PICKUP_R=22;
   function spawnBombRushItem(){
     for(let k=0;k<50;k++){
@@ -454,6 +479,7 @@
     }
   }
   function updatePickups(dt){
+    if(!bombRushItemEnabled) return;   // メニューでオフのときは出現しない
     // 場に1個も無いときだけ、間隔をおいて出現
     if(pickups.length===0){ itemSpawnT-=dt; if(itemSpawnT<=0){ spawnBombRushItem(); itemSpawnT=ITEM_SPAWN_INTERVAL; } }
     for(let i=pickups.length-1;i>=0;i--){ const it=pickups[i]; it.t+=dt;
@@ -838,6 +864,13 @@
       card.addEventListener('touchstart', pick, {passive:false});
       card.classList.toggle('active', card.dataset.weapon===selectedWeapon);
     });
+    // ボムラッシュアイテムのオン／オフ
+    const sw=document.getElementById('bombRushSwitch'), tog=document.getElementById('bombRushToggle');
+    if(sw){
+      sw.classList.toggle('on', bombRushItemEnabled);
+      const flip=e=>{ e&&e.preventDefault(); bombRushItemEnabled=!bombRushItemEnabled; sw.classList.toggle('on', bombRushItemEnabled); };
+      tog.onclick=flip; tog.ontouchstart=flip;
+    }
     // ステップ移動
     const toW=document.getElementById('toWeaponBtn'), back=document.getElementById('backToCharBtn');
     if(toW){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; toW.onclick=f; toW.ontouchstart=f; }
