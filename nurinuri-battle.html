@@ -278,6 +278,18 @@
             <div class="p-name">マシンスピナー</div>
             <div class="p-desc">回し続けるほど精度と連射が上がる</div>
           </div>
+          <div class="pick-card" data-weapon="slosher">
+            <span class="p-check">✓</span>
+            <div class="w-icon">🪣</div>
+            <div class="p-name">スロッシャー</div>
+            <div class="p-desc">インクをぶちまけ、壁の裏まで届く</div>
+          </div>
+          <div class="pick-card" data-weapon="dual">
+            <span class="p-check">✓</span>
+            <div class="w-icon">🔫</div>
+            <div class="p-name">デュアル</div>
+            <div class="p-desc">高速連射＋撃ちながらステップ回避</div>
+          </div>
         </div>
         <div class="item-toggle" id="bombRushToggle">
           <div class="it-info">
@@ -454,13 +466,20 @@
     // ローラー：射程は短いが威力大。移動するだけで足元を太く塗る。
     roller: { name: 'ローラー', fireCd: 0.55, inkCost: 6, speed: 330, range: 95, spread: 0.18, damage: 62, splatHit: 30, splatWall: 16, pellets: 3, isRoller: true, rollPaint: 18, rollInk: 14 },
     // マシンスピナー：撃ち続ける（回す）ほど精度と連射が上がる。塗り埋め役。
-    spinner: { name: 'マシンスピナー', fireCd: 0.055, inkCost: 0.8, speed: 600, range: 255, spread: 0.26, damage: 12, splatHit: 8, splatWall: 11, pellets: 1, isSpinner: true, spreadMin: 0.04 }
+    spinner: { name: 'マシンスピナー', fireCd: 0.055, inkCost: 0.8, speed: 600, range: 255, spread: 0.26, damage: 12, splatHit: 8, splatWall: 11, pellets: 1, isSpinner: true, spreadMin: 0.04 },
+    // スロッシャー：インクを「ぶちまける」。弾は障害物の上を越えて壁裏へ届く。
+    slosher: { name: 'スロッシャー', fireCd: 0.6, inkCost: 9, speed: 430, range: 205, spread: 0.10, damage: 38, splatHit: 24, splatWall: 22, pellets: 3, flyOver: true },
+    // デュアル：高速連射。撃ちながら動くと素早いステップ回避（無敵）を挟める。
+    dual: { name: 'デュアル', fireCd: 0.09, inkCost: 1.1, speed: 560, range: 210, spread: 0.10, damage: 14, splatHit: 9, splatWall: 12, pellets: 1, isDual: true }
   };
 
-  const BOT_WEAPONS = ['handgun', 'shotgun', 'rifle', 'roller', 'spinner'];
+  const BOT_WEAPONS = ['handgun', 'shotgun', 'rifle', 'roller', 'spinner', 'slosher', 'dual'];
+  // 弾の描画サイズ（ブキ別）
+  const SHOT_R = { handgun:4.5, shotgun:3.2, rifle:6.5, roller:5.5, spinner:3.4, slosher:5.5, dual:4.0 };
   function mkChar(x,y,team,isBot){
     return {x,y,px:x,py:y,team,r:11,baseX:x,baseY:y,isBot,
       hp:100,maxHp:100,ink:100,maxInk:100,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,spin:0,
+      dodgeT:0,dodgeCd:0,dodgeX:0,dodgeY:0,
       aimx:0,aimy:isBot?1:-1, tx:x,ty:y,stuck:0,fireT:0,wob:Math.random()*9,
       weapon: isBot ? BOT_WEAPONS[Math.floor(Math.random()*BOT_WEAPONS.length)] : 'handgun'};
   }
@@ -509,6 +528,7 @@
         damage: w.damage,
         splatHit: w.splatHit,
         splatWall: w.splatWall,
+        flyOver: !!w.flyOver,
         weaponType: c.weapon
       });
     }
@@ -861,7 +881,9 @@
   // 画像が無いブキ用の表示メタ
   const WEAPON_META={
     roller:{icon:'🛼', desc:'動くだけで足元を太く塗る。近づいて一撃の威力。'},
-    spinner:{icon:'🌀', desc:'回し続けるほど精度と連射が上がる塗り埋め役。'}
+    spinner:{icon:'🌀', desc:'回し続けるほど精度と連射が上がる塗り埋め役。'},
+    slosher:{icon:'🪣', desc:'インクをぶちまける。弾が障害物の上を越えて壁裏へ届く。'},
+    dual:{icon:'🔫', desc:'高速連射。撃ちながら動くと無敵のステップ回避を挟める。'}
   };
   function updateLoadoutPreview(animate=false){
     const statusImage=document.getElementById('statusImage'), caption=document.getElementById('statusCaption');
@@ -1082,8 +1104,19 @@
     if(throwing) throwPower=Math.min(1,throwPower+dt/THROW_FULL);
 
     const pw=WEAPONS[player.weapon]||WEAPONS.handgun;
+    // デュアル：撃ちながら動くと一定間隔でステップ回避（短い無敵＆素早い横移動）
+    player.dodgeCd=Math.max(0,(player.dodgeCd||0)-dt);
+    if(player.dodgeT>0) player.dodgeT=Math.max(0,player.dodgeT-dt);
+    let dodgeMul=1;
+    if(pw.isDual){
+      if(firing && moving && player.dodgeCd<=0 && player.dodgeT<=0){
+        player.dodgeT=0.24; player.dodgeCd=0.9; player.inv=Math.max(player.inv,0.3);
+        player.dodgeX=dx; player.dodgeY=dy;
+      }
+      if(player.dodgeT>0){ dodgeMul=2.7; dx=player.dodgeX; dy=player.dodgeY; }
+    }
     // ローラーはやや速く動ける
-    const speed=168*mult*(pw.isRoller?1.12:1)*dt;
+    const speed=168*mult*(pw.isRoller?1.12:1)*dodgeMul*dt;
     player.px=player.x;player.py=player.y;
     moveChar(player,dx*speed,dy*speed);
     if(!player.swim && moving){
@@ -1157,7 +1190,9 @@
       for(const tt of allChars){ if(tt.team===s.team||!tt.alive||tt.inv>0) continue;
         if(Math.hypot(tt.x-s.x,tt.y-s.y)<tt.r+6){ damage(tt,s.damage); splat(s.x,s.y,s.team,s.splatHit); hit=true; break; } }
       if(hit){ shots.splice(i,1); continue; }
-      if(s.x<2||s.x>SIZE-2||s.y<2||s.y>SIZE-2||inObstacle(s.x,s.y,0)||s.dist>=s.maxD){
+      // スロッシャー弾(flyOver)は障害物の上を飛び越える＝障害物では消えない
+      const blocked = !s.flyOver && inObstacle(s.x,s.y,0);
+      if(s.x<2||s.x>SIZE-2||s.y<2||s.y>SIZE-2||blocked||s.dist>=s.maxD){
         let lx=Math.max(4,Math.min(SIZE-4,s.x)), ly=Math.max(4,Math.min(SIZE-4,s.y));
         if(!inObstacle(lx,ly,0)) splat(lx,ly,s.team,s.splatWall);
         shots.splice(i,1);
@@ -1260,7 +1295,7 @@
   function drawShots(){
     for(const s of shots){
       gctx.fillStyle=COLOR[s.team];
-      let r = s.weaponType === 'shotgun' ? 3.2 : (s.weaponType === 'rifle' ? 6.5 : (s.weaponType === 'roller' ? 5.5 : (s.weaponType === 'spinner' ? 3.4 : 4.5)));
+      let r = SHOT_R[s.weaponType] || 4.5;
       gctx.beginPath();gctx.arc(s.x,s.y,r,0,Math.PI*2);gctx.fill();
       gctx.globalAlpha=.4;gctx.beginPath();gctx.arc(s.x-s.vx*0.012,s.y-s.vy*0.012,r*0.7,0,Math.PI*2);gctx.fill();gctx.globalAlpha=1;
     }
@@ -1413,7 +1448,7 @@
       else if(it.k==='char') drawChar3D(it.c,it.p);
       else if(it.k==='shot'){
         const p=it.p;
-        let baseR = it.s.weaponType === 'shotgun' ? 3.2 : (it.s.weaponType === 'rifle' ? 6.5 : (it.s.weaponType === 'roller' ? 5.5 : (it.s.weaponType === 'spinner' ? 3.4 : 4.5)));
+        let baseR = SHOT_R[it.s.weaponType] || 4.5;
         const r=Math.max(1.5, baseR*p.scale);
         gctx.fillStyle=COLOR[it.s.team]; gctx.beginPath(); gctx.arc(p.sx,p.sy,r,0,Math.PI*2); gctx.fill();
       }
