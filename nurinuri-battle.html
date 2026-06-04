@@ -255,7 +255,7 @@
             <span class="it-icon">∞</span>
             <div class="it-text">
               <div class="it-name">ボムラッシュアイテム</div>
-              <div class="it-desc">拾うと15秒間ボム投げ放題</div>
+              <div class="it-desc">拾うと5秒間ボム投げ放題</div>
             </div>
           </div>
           <span class="switch on" id="bombRushSwitch"><span class="knob"></span></span>
@@ -443,7 +443,7 @@
   const BOMB_MIN=80, BOMB_MAX=325, THROW_FULL=0.7, BOMB_DAMAGE=80, BOMB_DAMAGE_RADIUS=92, BOMB_IMPACT_RADIUS=18;
   // ボムラッシュ：拾うと一定時間ボム投げ放題（チャージ・消費無視）
   let bombRush=0;
-  const BOMB_RUSH_DURATION=15;
+  const BOMB_RUSH_DURATION=5;
   // 投げられるか：通常はゲージ満タン、ラッシュ中はいつでも
   function canThrow(){ return bombGauge>=1 || bombRush>0; }
   function bombPress(){ if(state!=='play'||!player||!player.alive) return; if(canThrow()){ throwing=true; throwPower=0; } }
