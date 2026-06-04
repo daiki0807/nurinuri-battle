@@ -127,6 +127,8 @@
   .pick-card.active{background:linear-gradient(135deg,rgba(255,106,0,.18),rgba(255,230,0,.18));
     border-color:var(--yellow);box-shadow:0 3px 0 var(--orange);transform:translateY(-2px);}
   .pick-card img{width:100%;height:96px;object-fit:contain;border-radius:8px;display:block;background:rgba(0,0,0,.2);}
+  .pick-card .w-icon{width:100%;height:96px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:46px;background:radial-gradient(circle at 50% 40%,rgba(255,144,0,.22),rgba(0,0,0,.25));}
   .pick-card .p-name{font-family:"Dela Gothic One",cursive;font-size:12px;color:#fff;margin-top:5px;}
   .pick-card.active .p-name{color:var(--yellow);text-shadow:1px 1px 0 #000;}
   .pick-card .p-desc{font-size:9.5px;color:#cfcfe0;line-height:1.35;margin-top:2px;min-height:26px;}
@@ -165,6 +167,12 @@
     transform:translateX(-140%);animation:statusShine 4s ease-in-out infinite;pointer-events:none;}
   .status-frame.swap{animation:statusSwap .34s ease both;}
   .status-image{width:100%;height:100%;display:block;object-fit:cover;}
+  .status-placeholder{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    background:radial-gradient(circle at 50% 35%,#16335a,#07152a 70%);text-align:center;padding:16px;}
+  .status-placeholder.show{display:flex;}
+  .status-placeholder .sp-icon{font-size:84px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));}
+  .status-placeholder .sp-name{font-family:"Dela Gothic One",cursive;font-size:22px;color:var(--yellow);text-shadow:2px 2px 0 #000;}
+  .status-placeholder .sp-desc{font-size:12px;color:#dfe6f5;max-width:80%;line-height:1.5;}
   .status-caption{position:absolute;left:9px;bottom:7px;padding:3px 7px;border:2px solid #000;border-radius:8px;
     background:rgba(8,8,16,.82);font-family:"Dela Gothic One",cursive;font-size:9px;color:var(--yellow);
     text-shadow:1px 1px 0 #000;pointer-events:none;}
@@ -204,6 +212,11 @@
       <div class="status-preview" id="statusPreview">
         <div class="status-frame" id="statusFrame">
           <img class="status-image" id="statusImage" alt="選択中のキャラクターとブキのステータス画面">
+          <div class="status-placeholder" id="statusPlaceholder">
+            <div class="sp-icon" id="spIcon">🛼</div>
+            <div class="sp-name" id="spName">ローラー</div>
+            <div class="sp-desc" id="spDesc"></div>
+          </div>
           <span class="status-caption" id="statusCaption">ガール｜ハンドガン</span>
         </div>
       </div>
@@ -252,6 +265,18 @@
             <img src="%E6%AD%A6%E5%99%A8%E7%94%BB%E5%83%8F/%E3%83%A9%E3%82%A4%E3%83%95%E3%83%AB.png" alt="ライフル">
             <div class="p-name">ライフル</div>
             <div class="p-desc">射程と威力に優れるがインク消費大</div>
+          </div>
+          <div class="pick-card" data-weapon="roller">
+            <span class="p-check">✓</span>
+            <div class="w-icon">🛼</div>
+            <div class="p-name">ローラー</div>
+            <div class="p-desc">動くだけで広く塗り、接近して一撃</div>
+          </div>
+          <div class="pick-card" data-weapon="spinner">
+            <span class="p-check">✓</span>
+            <div class="w-icon">🌀</div>
+            <div class="p-name">マシンスピナー</div>
+            <div class="p-desc">回し続けるほど精度と連射が上がる</div>
           </div>
         </div>
         <div class="item-toggle" id="bombRushToggle">
@@ -425,15 +450,19 @@
   const WEAPONS = {
     handgun: { name: 'ハンドガン', fireCd: 0.10, inkCost: 1.4, speed: 535, range: 225, spread: 0.08, damage: 18, splatHit: 11, splatWall: 15, pellets: 1 },
     shotgun: { name: 'ショットガン', fireCd: 0.55, inkCost: 8.5, speed: 460, range: 135, spread: 0.32, damage: 22, splatHit: 9, splatWall: 13, pellets: 5 },
-    rifle: { name: 'ライフル', fireCd: 0.85, inkCost: 12.0, speed: 850, range: 410, spread: 0.0, damage: 70, splatHit: 18, splatWall: 24, pellets: 1 }
+    rifle: { name: 'ライフル', fireCd: 0.85, inkCost: 12.0, speed: 850, range: 410, spread: 0.0, damage: 70, splatHit: 18, splatWall: 24, pellets: 1 },
+    // ローラー：射程は短いが威力大。移動するだけで足元を太く塗る。
+    roller: { name: 'ローラー', fireCd: 0.55, inkCost: 6, speed: 330, range: 95, spread: 0.18, damage: 62, splatHit: 30, splatWall: 16, pellets: 3, isRoller: true, rollPaint: 18, rollInk: 14 },
+    // マシンスピナー：撃ち続ける（回す）ほど精度と連射が上がる。塗り埋め役。
+    spinner: { name: 'マシンスピナー', fireCd: 0.055, inkCost: 0.8, speed: 600, range: 255, spread: 0.26, damage: 12, splatHit: 8, splatWall: 11, pellets: 1, isSpinner: true, spreadMin: 0.04 }
   };
 
+  const BOT_WEAPONS = ['handgun', 'shotgun', 'rifle', 'roller', 'spinner'];
   function mkChar(x,y,team,isBot){
-    const wList = ['handgun', 'shotgun', 'rifle'];
     return {x,y,px:x,py:y,team,r:11,baseX:x,baseY:y,isBot,
-      hp:100,maxHp:100,ink:100,maxInk:100,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,
+      hp:100,maxHp:100,ink:100,maxInk:100,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,spin:0,
       aimx:0,aimy:isBot?1:-1, tx:x,ty:y,stuck:0,fireT:0,wob:Math.random()*9,
-      weapon: isBot ? wList[Math.floor(Math.random()*3)] : 'handgun'};
+      weapon: isBot ? BOT_WEAPONS[Math.floor(Math.random()*BOT_WEAPONS.length)] : 'handgun'};
   }
   let player, bots=[], allChars=[], shots=[], bombs=[], bombFx=[], splats=[];
 
@@ -448,16 +477,24 @@
   function fire(c,ax,ay){
     const w = WEAPONS[c.weapon] || WEAPONS.handgun;
     if(c.fireCd>0||c.ink<w.inkCost||!c.alive) return;
-    c.fireCd = c.isBot ? w.fireCd * 1.5 : w.fireCd;
+    let cd = c.isBot ? w.fireCd * 1.5 : w.fireCd;
+    let spread = w.spread;
+    if(w.isSpinner){
+      // 回し続けるほど spin(0→1) が上がり、拡散が縮まり連射も速くなる
+      c.spin = Math.min(1, (c.spin||0) + 0.10);
+      spread = w.spread + (w.spreadMin - w.spread) * c.spin;
+      cd *= (1 - 0.4 * c.spin);
+    }
+    c.fireCd = cd;
     c.ink -= w.inkCost;
     const baseA=Math.atan2(ay,ax);
-    
+
     for(let i=0; i<w.pellets; i++){
       let a = baseA;
       if(w.pellets > 1) {
-        a += (Math.random() * 2 - 1) * w.spread;
+        a += (Math.random() * 2 - 1) * spread;
       } else {
-        a += (c.isBot ? w.spread * 1.6 : w.spread) * (Math.random() * 2 - 1);
+        a += (c.isBot ? spread * 1.6 : spread) * (Math.random() * 2 - 1);
       }
       const sp = w.speed * (0.9 + Math.random()*0.2);
       const maxD = w.range * (0.85 + Math.random()*0.3);
@@ -492,8 +529,9 @@
     c.alive=true; c.hp=c.maxHp; c.ink=c.maxInk; c.inv=1.2;
     c.x=c.baseX; c.y=c.baseY; c.px=c.x; c.py=c.y;
     if(c.isBot){
-      c.weapon = ['handgun', 'shotgun', 'rifle'][Math.floor(Math.random()*3)];
+      c.weapon = BOT_WEAPONS[Math.floor(Math.random()*BOT_WEAPONS.length)];
     }
+    c.spin=0;
     splat(c.x,c.y,c.team,18);
   }
 
@@ -820,10 +858,27 @@
       rifle:'%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9%E7%94%BB%E9%9D%A2/%E7%94%B7%E5%AD%90%E3%82%AD%E3%83%A3%E3%83%A9_%E3%83%A9%E3%82%A4%E3%83%95%E3%83%AB%E8%A3%85%E5%82%99.png'
     }
   };
+  // 画像が無いブキ用の表示メタ
+  const WEAPON_META={
+    roller:{icon:'🛼', desc:'動くだけで足元を太く塗る。近づいて一撃の威力。'},
+    spinner:{icon:'🌀', desc:'回し続けるほど精度と連射が上がる塗り埋め役。'}
+  };
   function updateLoadoutPreview(animate=false){
     const statusImage=document.getElementById('statusImage'), caption=document.getElementById('statusCaption');
     const frame=document.getElementById('statusFrame'), charImages=STATUS_IMG[selectedChar]||STATUS_IMG.girl;
-    if(statusImage) statusImage.src=charImages[selectedWeapon]||charImages.handgun;
+    const ph=document.getElementById('statusPlaceholder');
+    const meta=WEAPON_META[selectedWeapon];
+    if(meta){
+      // 専用画像が無いブキはアイコン＋説明のプレースホルダーを表示
+      if(statusImage) statusImage.style.display='none';
+      if(ph){ ph.classList.add('show');
+        document.getElementById('spIcon').textContent=meta.icon;
+        document.getElementById('spName').textContent=(WEAPONS[selectedWeapon]||{}).name||'';
+        document.getElementById('spDesc').textContent=meta.desc; }
+    } else {
+      if(statusImage){ statusImage.style.display='block'; statusImage.src=charImages[selectedWeapon]||charImages.handgun; }
+      if(ph) ph.classList.remove('show');
+    }
     if(caption) caption.textContent=(selectedChar==='boy'?'ボーイ':'ガール')+'｜'+(WEAPONS[selectedWeapon]||WEAPONS.handgun).name;
     if(animate&&frame){
       frame.classList.remove('swap'); void frame.offsetWidth; frame.classList.add('swap');
@@ -1026,10 +1081,19 @@
     else bombGauge=Math.min(1,bombGauge+dt/12);
     if(throwing) throwPower=Math.min(1,throwPower+dt/THROW_FULL);
 
-    const speed=168*mult*dt;
+    const pw=WEAPONS[player.weapon]||WEAPONS.handgun;
+    // ローラーはやや速く動ける
+    const speed=168*mult*(pw.isRoller?1.12:1)*dt;
     player.px=player.x;player.py=player.y;
     moveChar(player,dx*speed,dy*speed);
-    if(!player.swim && moving) paintCircle(player.x,player.y,1,7);
+    if(!player.swim && moving){
+      if(pw.isRoller && player.ink>0.5){   // ローラー：移動で足元を太く塗りつぶす（インク消費）
+        paintCircle(player.x,player.y,player.team,pw.rollPaint);
+        player.ink=Math.max(0,player.ink-pw.rollInk*dt);
+      } else paintCircle(player.x,player.y,player.team,7);
+    }
+    // スピナーの回転は撃たないと徐々に落ちる
+    if(!firing) player.spin=Math.max(0,(player.spin||0)-dt*1.5);
 
     if(isRotated()){
       // 一人称：向き(player.aim)は前段で fpsHeading に固定済み。発射方向(ax,ay)はアシスト適用済み。
@@ -1069,7 +1133,8 @@
     b.px=b.x;b.py=b.y;
     moveChar(b,dx*speed,dy*speed);
     if(Math.hypot(b.x-b.px,b.y-b.py)<speed*0.3){ b.stuck+=dt; if(b.stuck>0.35) pickTarget(b);} else b.stuck=0;
-    paintCircle(b.x,b.y,b.team,6);
+    const bwp=WEAPONS[b.weapon]||WEAPONS.handgun;
+    paintCircle(b.x,b.y,b.team, bwp.isRoller?16:6);
 
     let nearest=null,nd=1e9;
     for(const o of allChars){ if(o===b||o.team===b.team||!o.alive) continue;
@@ -1195,7 +1260,7 @@
   function drawShots(){
     for(const s of shots){
       gctx.fillStyle=COLOR[s.team];
-      let r = s.weaponType === 'shotgun' ? 3.2 : (s.weaponType === 'rifle' ? 6.5 : 4.5);
+      let r = s.weaponType === 'shotgun' ? 3.2 : (s.weaponType === 'rifle' ? 6.5 : (s.weaponType === 'roller' ? 5.5 : (s.weaponType === 'spinner' ? 3.4 : 4.5)));
       gctx.beginPath();gctx.arc(s.x,s.y,r,0,Math.PI*2);gctx.fill();
       gctx.globalAlpha=.4;gctx.beginPath();gctx.arc(s.x-s.vx*0.012,s.y-s.vy*0.012,r*0.7,0,Math.PI*2);gctx.fill();gctx.globalAlpha=1;
     }
@@ -1348,7 +1413,7 @@
       else if(it.k==='char') drawChar3D(it.c,it.p);
       else if(it.k==='shot'){
         const p=it.p;
-        let baseR = it.s.weaponType === 'shotgun' ? 3.2 : (it.s.weaponType === 'rifle' ? 6.5 : 4.5);
+        let baseR = it.s.weaponType === 'shotgun' ? 3.2 : (it.s.weaponType === 'rifle' ? 6.5 : (it.s.weaponType === 'roller' ? 5.5 : (it.s.weaponType === 'spinner' ? 3.4 : 4.5)));
         const r=Math.max(1.5, baseR*p.scale);
         gctx.fillStyle=COLOR[it.s.team]; gctx.beginPath(); gctx.arc(p.sx,p.sy,r,0,Math.PI*2); gctx.fill();
       }
