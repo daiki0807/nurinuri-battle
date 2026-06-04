@@ -134,6 +134,10 @@
     background:var(--yellow);border:2px solid #000;color:#161616;font-size:13px;font-weight:900;
     display:none;align-items:center;justify-content:center;line-height:1;}
   .pick-card.active .p-check{display:flex;}
+  .stage-thumb{width:100%;height:96px;border-radius:8px;background:#0e1626;display:flex;align-items:center;justify-content:center;}
+  .stage-thumb::after{content:"";border:2px solid rgba(255,255,255,.55);border-radius:4px;}
+  .stage-thumb.normal::after{width:52px;height:52px;}
+  .stage-thumb.wide::after{width:80px;height:80px;border-style:dashed;border-color:var(--orange,#ff6a00);}
   .step-btns{display:flex;gap:10px;margin-top:2px;}
   .btn.small{font-size:14px;padding:7px 18px;}
   /* アイテムのオン／オフ切替 */
@@ -203,7 +207,7 @@
           <span class="status-caption" id="statusCaption">ガール｜ハンドガン</span>
         </div>
       </div>
-      <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span></div>
+      <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span><span class="dot" id="dot3"></span></div>
 
       <!-- STEP 1：キャラクター選択 -->
       <div class="select-step show" id="stepChar">
@@ -262,6 +266,29 @@
         </div>
         <div class="step-btns">
           <button class="btn small ghost" id="backToCharBtn">◀ もどる</button>
+          <button class="btn small" id="toStageBtn">つぎへ ▶</button>
+        </div>
+      </div>
+
+      <!-- STEP 3：ステージ選択 -->
+      <div class="select-step" id="stepStage">
+        <div class="weapon-select-title">③ ステージを選択</div>
+        <div class="pick-grid" id="stageGrid">
+          <div class="pick-card active" data-stage="normal">
+            <span class="p-check">✓</span>
+            <div class="stage-thumb normal"></div>
+            <div class="p-name">ノーマル</div>
+            <div class="p-desc">標準的な広さ。全体が画面に収まる</div>
+          </div>
+          <div class="pick-card" data-stage="wide">
+            <span class="p-check">✓</span>
+            <div class="stage-thumb wide"></div>
+            <div class="p-name">ワイド</div>
+            <div class="p-desc">広大なフィールド。カメラが自分を追う</div>
+          </div>
+        </div>
+        <div class="step-btns">
+          <button class="btn small ghost" id="backToWeaponBtn">◀ もどる</button>
           <button class="btn" id="startBtn">スタート</button>
         </div>
       </div>
@@ -287,29 +314,61 @@
 
 <script>
 (function(){
-  const SIZE=600, COLS=48, ROWS=48, CELL=SIZE/COLS, ROUND=60;
+  // VIEW=画面に映る表示領域（固定）。SIZE=フィールド自体の広さ（ステージで変化）。
+  // CELL（1マスのサイズ）は固定し、ステージごとにマス数(COLS/ROWS)を変えて広さを調整する。
+  const VIEW=600, CELL=12.5, ROUND=60;
+  let SIZE=VIEW, COLS=48, ROWS=48;
   const FPS_TURN=2.7;   // 一人称のタッチ旋回速度（rad/秒）
   // ---- 一人称（本物の3D遠近）用パラメータ ----
-  const FP_FOCAL=430, FP_HORIZON=SIZE*0.40, FP_CAMH=72, FP_BACK=92, FP_NEAR=7, FP_MAXVIEW=660, FP_BLOCKH=66;
+  const FP_FOCAL=430, FP_HORIZON=VIEW*0.40, FP_CAMH=72, FP_BACK=92, FP_NEAR=7, FP_MAXVIEW=660, FP_BLOCKH=66;
   const inkCv=document.getElementById('ink'), gameCv=document.getElementById('game');
-  inkCv.width=gameCv.width=SIZE; inkCv.height=gameCv.height=SIZE;
+  gameCv.width=gameCv.height=VIEW; inkCv.width=inkCv.height=SIZE;   // inkCvはフィールドサイズ（setStageで再設定）
   const ictx=inkCv.getContext('2d'), gctx=gameCv.getContext('2d');
   // 床は低解像バッファにサンプリングしてから拡大（モバイルでも軽く）
-  const FBW=300, FBH=300, FHOR=FBH*0.40, FFOC=FP_FOCAL*FBW/SIZE;
+  const FBW=300, FBH=300, FHOR=FBH*0.40, FFOC=FP_FOCAL*FBW/VIEW;
   const fbuf=document.createElement('canvas'); fbuf.width=FBW; fbuf.height=FBH;
   const fctx=fbuf.getContext('2d'); const fimg=fctx.createImageData(FBW,FBH);
 
   const COLOR={1:'#ff6a00',2:'#12b8ff'};
   const COLOR_DK={1:'#c44d00',2:'#0a82c4'};
-  const grid=[]; for(let x=0;x<COLS;x++) grid.push(new Array(ROWS).fill(0));
+  let grid=[];
+  let obstacles=[];
 
-  const obstacles=[
-    {x:248,y:108,w:104,h:104},
-    {x:70,y:372,w:130,h:70},
-    {x:410,y:398,w:96,h:130},
-    {x:438,y:84,w:78,h:96},
-    {x:96,y:96,w:78,h:78},
-  ];
+  // ---- ステージ定義 ----
+  // cols/rows: マス数（広さ）。SIZE=cols*CELL。spawns: 各キャラの初期位置。
+  const STAGES={
+    normal:{ name:'ノーマル', desc:'標準的な広さ。画面に全体が収まる。', cols:48, rows:48,
+      obstacles:[
+        {x:248,y:108,w:104,h:104},
+        {x:70,y:372,w:130,h:70},
+        {x:410,y:398,w:96,h:130},
+        {x:438,y:84,w:78,h:96},
+        {x:96,y:96,w:78,h:78},
+      ],
+      spawns:{ player:{x:300,y:545}, ally:{x:130,y:545}, e1:{x:300,y:58}, e2:{x:540,y:58} } },
+    wide:{ name:'ワイド', desc:'広大なフィールド。カメラが自分を追う。', cols:80, rows:80,
+      obstacles:[
+        {x:448,y:448,w:104,h:104},   // 中央
+        {x:180,y:200,w:120,h:90},
+        {x:700,y:200,w:120,h:90},
+        {x:180,y:710,w:120,h:90},
+        {x:700,y:710,w:120,h:90},
+        {x:120,y:450,w:90,h:130},
+        {x:790,y:450,w:90,h:130},
+        {x:430,y:160,w:140,h:70},
+        {x:430,y:770,w:140,h:70},
+      ],
+      spawns:{ player:{x:500,y:930}, ally:{x:230,y:930}, e1:{x:500,y:70}, e2:{x:780,y:70} } }
+  };
+  let selectedStage='normal';
+  function setStage(key){
+    const s=STAGES[key]||STAGES.normal;
+    COLS=s.cols; ROWS=s.rows; SIZE=COLS*CELL;
+    obstacles=s.obstacles.map(o=>({...o}));
+    grid=[]; for(let x=0;x<COLS;x++) grid.push(new Array(ROWS).fill(0));
+    inkCv.width=inkCv.height=SIZE;      // 塗りバッファをフィールドサイズに合わせる（自動クリア）
+    markObstacles();
+  }
   let totalCells=0;
   function markObstacles(){
     for(let x=0;x<COLS;x++)for(let y=0;y<ROWS;y++){
@@ -520,7 +579,13 @@
   let viewIdx=0;
   function isRotated(){ return viewMode==='fps'; }
   function getCam(){
-    return {tx:SIZE/2,ty:SIZE/2,zoom:1,rot:0,ax:SIZE/2,ay:SIZE/2};
+    const half=VIEW/2;
+    // フィールドが表示領域以下なら全体を中央表示（従来どおり）。
+    if(SIZE<=VIEW || !player) return {tx:SIZE/2,ty:SIZE/2,zoom:1,rot:0,ax:half,ay:half};
+    // 広いステージはプレイヤーを追従。フィールド端からはみ出さないようクランプ。
+    const tx=Math.max(half,Math.min(SIZE-half,player.x));
+    const ty=Math.max(half,Math.min(SIZE-half,player.y));
+    return {tx,ty,zoom:1,rot:0,ax:half,ay:half};
   }
   function applyCam(){ const c=getCam();
     gctx.translate(c.ax,c.ay); gctx.scale(c.zoom,c.zoom); gctx.rotate(c.rot); gctx.translate(-c.tx,-c.ty); }
@@ -588,10 +653,11 @@
   gameCv.addEventListener('mouseleave', ()=>{ mouseOverField=false; });
   window.addEventListener('mousemove',e=>{
     const r=gameCv.getBoundingClientRect();
-    const currX=(e.clientX-r.left)/r.width*SIZE;
-    const currY=(e.clientY-r.top)/r.height*SIZE;
-    mouseX=currX; mouseY=currY;
-    mouseOverField = currX>=0 && currX<=SIZE && currY>=0 && currY<=SIZE;
+    const sx=(e.clientX-r.left)/r.width*VIEW;     // 画面上の座標(0..VIEW)
+    const sy=(e.clientY-r.top)/r.height*VIEW;
+    const cam=getCam();                            // カメラを考慮してワールド座標へ変換
+    mouseX=cam.tx+(sx-cam.ax)/cam.zoom; mouseY=cam.ty+(sy-cam.ay)/cam.zoom;
+    mouseOverField = sx>=0 && sx<=VIEW && sy>=0 && sy<=VIEW;
 
     let diffX=0;
     if(e.movementX !== undefined){
@@ -707,15 +773,16 @@
   let selectedWeapon = 'handgun', selectedChar = 'girl';
 
   function resetGame(){
-    markObstacles(); ictx.clearRect(0,0,SIZE,SIZE);
+    setStage(selectedStage); ictx.clearRect(0,0,SIZE,SIZE);
+    const sp=(STAGES[selectedStage]||STAGES.normal).spawns;
     shots=[]; bombs=[]; bombFx=[]; splats=[]; pickups=[]; itemSpawnT=8; bombRush=0;
-    player=mkChar(300,545,1,false);
+    player=mkChar(sp.player.x,sp.player.y,1,false);
     player.weapon = selectedWeapon;
     player.char = selectedChar;
     bots=[
-      mkChar(130,545,1,true),   // 味方CPU
-      mkChar(300, 58,2,true),   // 敵CPU
-      mkChar(540, 58,2,true),   // 敵CPU
+      mkChar(sp.ally.x,sp.ally.y,1,true),   // 味方CPU
+      mkChar(sp.e1.x,  sp.e1.y,  2,true),   // 敵CPU
+      mkChar(sp.e2.x,  sp.e2.y,  2,true),   // 敵CPU
     ];
     allChars=[player,...bots];
     allChars.forEach(declip);        // 念のため障害物から押し出す
@@ -836,12 +903,12 @@
   });
 
   // ---- メニューのボタン（キャラ→ブキの2ステップ）をバインド（メニュー復元時に再呼び出し）----
-  function gotoStep(n){   // 1=キャラ, 2=ブキ
-    const sc=document.getElementById('stepChar'), sw=document.getElementById('stepWeapon');
-    const d1=document.getElementById('dot1'), d2=document.getElementById('dot2');
+  function gotoStep(n){   // 1=キャラ, 2=ブキ, 3=ステージ
+    const sc=document.getElementById('stepChar'), sw=document.getElementById('stepWeapon'), ss=document.getElementById('stepStage');
+    const d1=document.getElementById('dot1'), d2=document.getElementById('dot2'), d3=document.getElementById('dot3');
     if(!sc||!sw) return;
-    sc.classList.toggle('show', n===1); sw.classList.toggle('show', n===2);
-    if(d1) d1.classList.toggle('on', n===1); if(d2) d2.classList.toggle('on', n===2);
+    sc.classList.toggle('show', n===1); sw.classList.toggle('show', n===2); if(ss) ss.classList.toggle('show', n===3);
+    if(d1) d1.classList.toggle('on', n===1); if(d2) d2.classList.toggle('on', n===2); if(d3) d3.classList.toggle('on', n===3);
   }
   function bindMenu(){
     // キャラ選択カード
@@ -871,10 +938,23 @@
       const flip=e=>{ e&&e.preventDefault(); bombRushItemEnabled=!bombRushItemEnabled; sw.classList.toggle('on', bombRushItemEnabled); };
       tog.onclick=flip; tog.ontouchstart=flip;
     }
+    // ステージ選択カード
+    document.querySelectorAll('#stageGrid .pick-card').forEach(card => {
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#stageGrid .pick-card').forEach(c=>c.classList.remove('active'));
+        card.classList.add('active'); selectedStage = card.dataset.stage;
+      };
+      card.addEventListener('click', pick);
+      card.addEventListener('touchstart', pick, {passive:false});
+      card.classList.toggle('active', card.dataset.stage===selectedStage);
+    });
     // ステップ移動
     const toW=document.getElementById('toWeaponBtn'), back=document.getElementById('backToCharBtn');
+    const toS=document.getElementById('toStageBtn'), back2=document.getElementById('backToWeaponBtn');
     if(toW){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; toW.onclick=f; toW.ontouchstart=f; }
     if(back){ const f=e=>{e&&e.preventDefault();gotoStep(1);}; back.onclick=f; back.ontouchstart=f; }
+    if(toS){ const f=e=>{e&&e.preventDefault();gotoStep(3);}; toS.onclick=f; toS.ontouchstart=f; }
+    if(back2){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; back2.onclick=f; back2.ontouchstart=f; }
     // スタート
     const sb=document.getElementById('startBtn');
     if(sb){ const f=e=>{e&&e.preventDefault();startCountdown();}; sb.onclick=f; sb.ontouchstart=f; }
@@ -1196,7 +1276,7 @@
       }
     }
     fctx.putImageData(fimg,0,0);
-    gctx.drawImage(fbuf,0,0,SIZE,SIZE);
+    gctx.drawImage(fbuf,0,0,VIEW,VIEW);
 
     // 1点を画面へ投影（h=地面からの高さ）
     function proj(wx,wy,h){
@@ -1204,7 +1284,7 @@
       const depth=rx*cs+ry*sn;
       if(depth<=FP_NEAR) return null;
       const side=-rx*sn+ry*cs;
-      return {sx:SIZE/2+(side/depth)*FP_FOCAL, sy:FP_HORIZON+((FP_CAMH-h)/depth)*FP_FOCAL, depth, scale:FP_FOCAL/depth};
+      return {sx:VIEW/2+(side/depth)*FP_FOCAL, sy:FP_HORIZON+((FP_CAMH-h)/depth)*FP_FOCAL, depth, scale:FP_FOCAL/depth};
     }
 
     function drawChar3D(c,p){
@@ -1302,7 +1382,7 @@
 
     // 照準（前方クロスヘア）
     gctx.save(); gctx.strokeStyle='rgba(255,255,255,.85)'; gctx.lineWidth=2;
-    const cx=SIZE/2, cyc=FP_HORIZON+46;
+    const cx=VIEW/2, cyc=FP_HORIZON+46;
     gctx.beginPath(); gctx.arc(cx,cyc,9,0,Math.PI*2); gctx.moveTo(cx-15,cyc); gctx.lineTo(cx-4,cyc);
     gctx.moveTo(cx+4,cyc); gctx.lineTo(cx+15,cyc); gctx.moveTo(cx,cyc-15); gctx.lineTo(cx,cyc-4);
     gctx.moveTo(cx,cyc+4); gctx.lineTo(cx,cyc+15); gctx.stroke(); gctx.restore();
@@ -1360,8 +1440,8 @@
     }
 
     gctx.setTransform(1,0,0,1,0,0);
-    gctx.clearRect(0,0,SIZE,SIZE);
-    gctx.fillStyle='#0a0a12'; gctx.fillRect(0,0,SIZE,SIZE);
+    gctx.clearRect(0,0,VIEW,VIEW);
+    gctx.fillStyle='#0a0a12'; gctx.fillRect(0,0,VIEW,VIEW);
     if(viewMode==='fps' && player){
       renderFPS(t);
     } else {
@@ -1377,7 +1457,7 @@
     updateHUD();
     requestAnimationFrame(loop);
   }
-  markObstacles(); requestAnimationFrame(loop);
+  setStage('normal'); requestAnimationFrame(loop);
 })();
 </script>
 </body>
