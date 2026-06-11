@@ -68,8 +68,31 @@
   .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #000;}
   .result-pct{font-family:"Dela Gothic One",cursive;font-size:16px;display:flex;gap:18px;}
   .result-pct .o{color:var(--orange);} .result-pct .b{color:var(--blue);}
+  .result-quiz{font-family:"Dela Gothic One",cursive;font-size:13px;color:#161616;background:var(--yellow);
+    padding:6px 16px;border-radius:999px;border:2px solid #000;box-shadow:0 3px 0 #000;margin-top:2px;}
+  .result-quiz b{font-size:17px;}
   #goText{font-family:"Dela Gothic One",cursive;font-size:60px;color:var(--yellow);text-shadow:4px 4px 0 #000;
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:11;pointer-events:none;opacity:0;}
+
+  /* ---- クイズボム ---- */
+  #quizBox{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:12;
+    background:rgba(8,8,18,.72);backdrop-filter:blur(2px);}
+  #quizBox.show{display:flex;}
+  .quiz-card{width:min(86%,420px);background:linear-gradient(180deg,#1d1d2e,#14141f);border:4px solid #000;
+    border-radius:20px;box-shadow:0 6px 0 #000,0 0 30px rgba(255,230,0,.25);padding:18px 16px;text-align:center;
+    animation:quizpop .22s ease-out;}
+  @keyframes quizpop{from{transform:scale(.7);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .quiz-tag{font-family:"Dela Gothic One",cursive;font-size:13px;color:#161616;background:var(--yellow);
+    display:inline-block;padding:3px 14px;border-radius:999px;border:2px solid #000;box-shadow:0 2px 0 #000;}
+  .quiz-q{font-family:"Dela Gothic One",cursive;font-size:44px;color:#fff;text-shadow:3px 3px 0 #000;margin:12px 0 14px;}
+  .quiz-answers{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .quiz-ans{font-family:"Dela Gothic One",cursive;font-size:24px;color:#fff;background:#2a2a3e;border:3px solid #000;
+    border-radius:14px;padding:12px 4px;cursor:pointer;box-shadow:0 4px 0 #000;transition:transform .06s;}
+  .quiz-ans:active{transform:translateY(3px);box-shadow:0 1px 0 #000;}
+  .quiz-ans.good{background:#1fa84a;}
+  .quiz-ans.bad{background:#c43a3a;}
+  .quiz-ans.dim{opacity:.45;}
+  .quiz-fb{font-family:"Dela Gothic One",cursive;font-size:18px;min-height:26px;margin-top:12px;color:var(--yellow);text-shadow:2px 2px 0 #000;}
 
   .gauge-container {display:flex;align-items:center;gap:8px;width:100%;}
   .hud-char{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #000;
@@ -200,13 +223,21 @@
     <button id="viewBtn" class="view-btn">3人称</button>
     <button id="pauseBtn" class="view-btn pause-btn">‖ ポーズ</button>
     <div id="goText">GO!</div>
+    <div id="quizBox">
+      <div class="quiz-card">
+        <div class="quiz-tag">⚡ クイズボム！</div>
+        <div class="quiz-q" id="quizQ">7×8＝？</div>
+        <div class="quiz-answers" id="quizAnswers"></div>
+        <div class="quiz-fb" id="quizFb"></div>
+      </div>
+    </div>
     <div id="overlay">
       <div class="title-big"><span class="o">ぬり</span><span class="b">ぬり</span>バトル</div>
       <div class="sub">ターフウォー｜2対2の塗り合戦・60秒</div>
       <div class="desc">
         左で移動、右でねらって<b>インク発射</b>！<br>
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
-        <b>ボムは自分の陣地に乗るとチャージ</b>。満タンで<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
+        <b>ボムは自分の陣地に乗るとチャージ</b>。満タンでボタンを押すと<b>⚡九九クイズ</b>！正解すると<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
         左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
       </div>
       <div class="status-preview" id="statusPreview">
@@ -561,9 +592,71 @@
   // ボムラッシュ：拾うと一定時間ボム投げ放題（チャージ・消費無視）
   let bombRush=0;
   const BOMB_RUSH_DURATION=5;
-  // 投げられるか：通常はゲージ満タン、ラッシュ中はいつでも
-  function canThrow(){ return bombGauge>=1 || bombRush>0; }
-  function bombPress(){ if(state!=='play'||!player||!player.alive) return; if(canThrow()){ throwing=true; throwPower=0; } }
+  // ---- クイズボム：ゲージ満タン→クイズに正解するとボム解禁 ----
+  let bombArmed=false, quizCorrect=0, quizTotal=0, quizCur=null, quizLock=false;
+  // 問題セット（将来、漢字・都道府県などを追加できる形）
+  function genKuku(){
+    const a=2+Math.floor(Math.random()*8), b=2+Math.floor(Math.random()*8), ans=a*b;
+    const set=new Set([ans]);
+    while(set.size<4){
+      let d = Math.random()<0.5
+        ? (Math.max(2,a+Math.floor(Math.random()*3)-1))*(Math.max(2,b+Math.floor(Math.random()*3)-1))
+        : ans+[-a,a,-b,b][Math.floor(Math.random()*4)];
+      if(d>=1&&d<=81&&d!==ans) set.add(d);
+    }
+    const answers=[...set].sort(()=>Math.random()-0.5);
+    return {q:a+'×'+b+'＝？', answers:answers.map(String), correct:answers.indexOf(ans)};
+  }
+  const QUIZ_SETS={ kuku:{name:'九九', gen:genKuku} };
+  let quizSetKey='kuku';
+
+  function openQuiz(){
+    if(state!=='play') return;
+    state='quiz'; quizLock=false;
+    quizCur=QUIZ_SETS[quizSetKey].gen();
+    const box=document.getElementById('quizBox');
+    document.getElementById('quizQ').textContent=quizCur.q;
+    document.getElementById('quizFb').textContent='せいかいで ボムが なげられる！';
+    const wrap=document.getElementById('quizAnswers'); wrap.innerHTML='';
+    quizCur.answers.forEach((txt,i)=>{
+      const btn=document.createElement('button');
+      btn.className='quiz-ans'; btn.textContent=txt;
+      const pick=e=>{ if(e) e.preventDefault(); answerQuiz(i); };
+      btn.addEventListener('click',pick);
+      btn.addEventListener('touchstart',pick,{passive:false});
+      wrap.appendChild(btn);
+    });
+    box.classList.add('show');
+  }
+  function answerQuiz(i){
+    if(quizLock||!quizCur) return;
+    quizLock=true; quizTotal++;
+    const ok = i===quizCur.correct;
+    const fb=document.getElementById('quizFb');
+    const btns=document.querySelectorAll('#quizAnswers .quiz-ans');
+    btns.forEach((b,j)=>{
+      if(j===quizCur.correct) b.classList.add('good');
+      else if(j===i) b.classList.add('bad');
+      else b.classList.add('dim');
+    });
+    if(ok){ quizCorrect++; bombArmed=true; fb.textContent='せいかい！ボムを なげろ！'; }
+    else { bombGauge=0.5; fb.textContent='ざんねん…こたえは '+quizCur.answers[quizCur.correct]+'！'; }
+    setTimeout(closeQuiz, ok?700:1300);
+  }
+  function closeQuiz(){
+    document.getElementById('quizBox').classList.remove('show');
+    quizCur=null;
+    if(state==='quiz'){ last=0; state='play'; }   // 経過時間のジャンプを防いで再開
+  }
+
+  // 投げられるか：クイズ正解済みでゲージ満タン、ラッシュ中はいつでも
+  function canThrow(){ return (bombGauge>=1 && bombArmed) || bombRush>0; }
+  function bombPress(){
+    if(state!=='play'||!player||!player.alive) return;
+    if(bombRush>0){ throwing=true; throwPower=0; return; }          // ラッシュ中はクイズなしで投げ放題
+    if(bombGauge>=1 && !bombArmed){ openQuiz(); return; }            // 満タン→まずクイズ！
+    if(canThrow()){ throwing=true; throwPower=0; }
+  }
   function bombRelease(){ if(throwing){ throwBomb(throwPower); throwing=false; throwPower=0; } }
   function throwBomb(power){
     if(!canThrow()) return;
@@ -573,7 +666,7 @@
     let tx=player.x+dx*dist, ty=player.y+dy*dist;
     tx=Math.max(12,Math.min(SIZE-12,tx)); ty=Math.max(12,Math.min(SIZE-12,ty));
     bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650,team:player.team});
-    if(bombRush<=0) bombGauge=0;   // ラッシュ中はゲージを消費しない
+    if(bombRush<=0){ bombGauge=0; bombArmed=false; }   // ラッシュ中はゲージを消費しない
   }
   function explodeBomb(b,x=b.tx,y=b.ty){
     splat(x,y,b.team,80);
@@ -699,6 +792,12 @@
   let usingTouch = false;
   window.addEventListener('touchstart', ()=>{ usingTouch=true; mouseOverField=false; mouseDown=false; }, {passive:true});
   window.addEventListener('keydown',e=>{
+    // クイズ中は1〜4キーで回答できる
+    if(state==='quiz'){
+      const n=parseInt(e.key,10);
+      if(n>=1&&n<=4){ e.preventDefault(); answerQuiz(n-1); }
+      return;
+    }
     if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) bombPress(); return; }
     keys[e.key.toLowerCase()]=true;
   });
@@ -846,6 +945,8 @@
     allChars.forEach(declip);        // 念のため障害物から押し出す
     bots.forEach(pickTarget);
     bombGauge=0; throwing=false; throwPower=0;
+    bombArmed=false; quizCorrect=0; quizTotal=0; quizCur=null;
+    document.getElementById('quizBox').classList.remove('show');
     fpsHeading=Math.atan2(player.aimy,player.aimx); camRot=-fpsHeading-Math.PI/2;
     timeLeft=ROUND; timerEl.textContent=ROUND; timerEl.classList.remove('warn');
     allChars.forEach(c=>splat(c.x,c.y,c.team,20));
@@ -924,6 +1025,7 @@
   // メニュー画面へ戻る
   function showMenu(){
     stopBGM(); throwing=false; throwPower=0;
+    document.getElementById('quizBox').classList.remove('show'); quizCur=null;
     pauseBtn.classList.remove('show');
     state='title';
     overlay.innerHTML=MENU_HTML;
@@ -957,9 +1059,13 @@
     pauseBtn.classList.remove('show');
     state='result'; const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
     const win=op>bp, draw=op===bp;
+    const quizLine = quizTotal>0
+      ? '⚡ クイズ せいかい <b>'+quizCorrect+'</b>／'+quizTotal+'問'+(quizCorrect===quizTotal?'　パーフェクト！🎉':(quizCorrect/quizTotal>=0.7?'　すごい！':''))
+      : '⚡ つぎは ボムボタンで クイズに ちょうせんしよう！';
     overlay.innerHTML=
       '<div class="title-big">'+(draw?'ひきわけ！':(win?'<span class="o">オレンジ</span>WIN!':'<span class="b">ブルー</span>WIN…'))+'</div>'+
       '<div class="result-pct"><span class="o">オレンジ '+op+'%</span><span class="b">ブルー '+bp+'%</span></div>'+
+      '<div class="result-quiz">'+quizLine+'</div>'+
       '<div class="desc">'+(win?'ナイスターフ！チームでフィールドを制圧した！':(draw?'まさかの互角！もう一本！':'おしい！ボムを溜めて一気に塗り返そう。'))+'</div>'+
       '<button class="btn" id="againBtn">もう一度あそぶ</button>'+
       '<button class="btn ghost" id="toMenuBtn2">メニューへ</button>';
@@ -1501,7 +1607,7 @@
       ringVal=bombRush/BOMB_RUSH_DURATION; ringColor='var(--orange)';
       bombCore.textContent= throwing ? Math.round(throwPower*100)+'%' : '∞'+Math.ceil(bombRush);
     } else if(throwing){ ringVal=throwPower; ringColor='var(--orange)'; bombCore.textContent=Math.round(throwPower*100)+'%'; }
-    else { ringVal=bombGauge; ringColor='var(--yellow)'; bombCore.textContent= bombGauge>=1?'ボム':Math.round(bombGauge*100)+'%'; }
+    else { ringVal=bombGauge; ringColor='var(--yellow)'; bombCore.textContent= bombGauge>=1?(bombArmed?'ボム':'？'):Math.round(bombGauge*100)+'%'; }
     const deg=ringVal*360;
     bombBtn.style.background='conic-gradient('+ringColor+' '+deg+'deg, rgba(255,255,255,.12) '+deg+'deg)';
     if(bombGauge>=1||bombRush>0) bombBtn.classList.add('ready'); else bombBtn.classList.remove('ready');
@@ -1519,8 +1625,8 @@
       updatePlayer(dt); bots.forEach(b=>updateBot(b,dt)); updateShots(dt); updateBombs(dt); updateSplats(dt); updatePickups(dt);
       timeLeft-=dt; if(timeLeft<0)timeLeft=0; const sec=Math.ceil(timeLeft); timerEl.textContent=sec;
       if(sec<=10) timerEl.classList.add('warn'); if(timeLeft<=0) endGame();
-    } else if(state==='pause'){
-      // ポーズ中は更新せず、最後の画面を静止表示
+    } else if(state==='pause'||state==='quiz'){
+      // ポーズ・クイズ中は更新せず、最後の画面を静止表示（タイマーも止まる）
     } else { updateSplats(dt); }
 
     if(state!=='pause' && isRotated()&&player){
