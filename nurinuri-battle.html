@@ -508,7 +508,7 @@
   // ---- エンティティ ----
   const WEAPONS = {
     handgun: { name: 'ハンドガン', fireCd: 0.10, inkCost: 1.4, speed: 535, range: 225, spread: 0.08, damage: 18, splatHit: 11, splatWall: 15, pellets: 1 },
-    shotgun: { name: 'ショットガン', fireCd: 0.55, inkCost: 8.5, speed: 460, range: 135, spread: 0.32, damage: 22, splatHit: 9, splatWall: 13, pellets: 5 },
+    shotgun: { name: 'ショットガン', fireCd: 0.55, inkCost: 8.5, speed: 460, range: 135, spread: 0.32, damage: 28, splatHit: 9, splatWall: 13, pellets: 5 },
     rifle: { name: 'ライフル', fireCd: 0.85, inkCost: 12.0, speed: 850, range: 410, spread: 0.0, damage: 70, splatHit: 18, splatWall: 24, pellets: 1 },
     // ローラー：射程は短いが威力大。移動するだけで足元を太く塗る。
     roller: { name: 'ローラー', fireCd: 0.55, inkCost: 6, speed: 330, range: 95, spread: 0.18, damage: 62, splatHit: 30, splatWall: 16, pellets: 3, isRoller: true, rollPaint: 18, rollInk: 14 },
@@ -720,36 +720,27 @@
       return;
     }
   }
-  // 拾ったキャラに効果を付与
+  // 拾ったキャラ（＝プレイヤー）に効果を付与
   function applyItem(c,type){
     if(type==='speed')   c.speedT=SPEED_DURATION;
     else if(type==='shield')  c.shieldT=SHIELD_DURATION;
     else if(type==='rainbow') c.rainbowT=RAINBOW_DURATION;
-    else if(type==='bombRush'){
-      if(c===player){ bombRush=BOMB_RUSH_DURATION; bombGauge=1; }
-      else c.speedT=SPEED_DURATION;   // CPUはボムを投げないのでスピードアップに変換
-    }
+    else if(type==='bombRush'){ bombRush=BOMB_RUSH_DURATION; bombGauge=1; }
   }
   function updatePickups(dt){
     if(!bombRushItemEnabled){ pickups.length=0; return; }   // メニューでオフのときは出現しない
     // 上限未満なら、間隔をおいて出現
     if(pickups.length<ITEM_MAX){ itemSpawnT-=dt; if(itemSpawnT<=0){ spawnItem(); itemSpawnT=ITEM_SPAWN_INTERVAL; } }
     for(let i=pickups.length-1;i>=0;i--){ const it=pickups[i]; it.t+=dt;
-      // プレイヤーもCPUも拾える（取り合い！）
-      for(const c of allChars){
-        if(c.alive && Math.hypot(c.x-it.x,c.y-it.y)<ITEM_PICKUP_R+c.r){
-          applyItem(c,it.type); pickups.splice(i,1); break;
-        }
+      // アイテムを拾えるのはプレイヤーだけ（CPUは取れない）
+      if(player&&player.alive&&Math.hypot(player.x-it.x,player.y-it.y)<ITEM_PICKUP_R+player.r){
+        applyItem(player,it.type); pickups.splice(i,1);
       }
     }
   }
 
   // ---- AI ----
   function pickTarget(b){
-    // 近くにおたすけアイテムがあれば、それを取りに行く（取り合い）
-    let near=null,nd=200;
-    for(const it of pickups){ const d=Math.hypot(it.x-b.x,it.y-b.y); if(d<nd){nd=d;near=it;} }
-    if(near){ b.tx=near.x; b.ty=near.y; b.stuck=0; return; }
     let best=null,bs=-1;
     for(let k=0;k<10;k++){
       const tx=24+Math.random()*(SIZE-48), ty=24+Math.random()*(SIZE-48);
