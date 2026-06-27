@@ -179,6 +179,11 @@
     font-family:"Dela Gothic One",cursive;font-size:18px;color:#161616;background:var(--yellow);border:3px solid #000;
     border-radius:999px;padding:5px 18px;box-shadow:0 3px 0 #000;opacity:0;transition:opacity .25s;white-space:nowrap;}
   #spReady.show{opacity:1;}
+  #bossIntro{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);z-index:11;pointer-events:none;
+    font-family:"Dela Gothic One",cursive;font-size:26px;color:#fff;text-shadow:3px 3px 0 #000,0 0 18px #c41f1f;
+    background:rgba(140,20,40,.55);border:3px solid #000;border-radius:16px;padding:8px 22px;white-space:nowrap;
+    opacity:0;transition:opacity .2s,transform .2s;}
+  #bossIntro.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
   .sp-thumb{width:100%;height:96px;border-radius:8px;display:flex;align-items:center;justify-content:center;
     font-size:48px;background:#0e1626;border:2px solid var(--c,#888);box-shadow:inset 0 0 22px rgba(255,255,255,.04);}
   .tip{text-align:center;font-size:10.5px;color:#7a7a90;font-weight:700;line-height:1.5;}
@@ -282,6 +287,7 @@
     <button id="pauseBtn" class="view-btn pause-btn">‖ ポーズ</button>
     <div id="buffBar"></div>
     <div id="spReady">⭐ スペシャル準備OK！</div>
+    <div id="bossIntro"></div>
     <div id="goText">GO!</div>
     <div id="quizBox">
       <div class="quiz-card">
@@ -809,11 +815,12 @@
     if(bombRush<=0){ bombGauge=0; bombArmed=false; }   // ラッシュ中はゲージを消費しない
   }
   function explodeBomb(b,x=b.tx,y=b.ty){
-    splat(x,y,b.team,80);
-    bombFx.push({x,y,r:0,max:150});
+    splat(x,y,b.team,b.splatR||80);          // アンコウのボムは特大インク
+    bombFx.push({x,y,r:0,max:b.splatR?200:150});
+    const dmg=b.dmg||BOMB_DAMAGE, rad=b.dmgR||BOMB_DAMAGE_RADIUS;
     for(const o of allChars){
       if(o.team===b.team || !o.alive) continue;
-      if(Math.hypot(o.x-x,o.y-y)<BOMB_DAMAGE_RADIUS+o.r) damage(o,BOMB_DAMAGE);
+      if(Math.hypot(o.x-x,o.y-y)<rad+o.r) damage(o,dmg);
     }
   }
 
@@ -1159,7 +1166,7 @@
 
   function resetGame(){
     gameMode=selectedMode; difficulty=selectedDifficulty;   // メニューの選択を反映
-    boss=null; bossDefeated=false; playerDeaths=0; playerGameOver=false;
+    boss=null; bossDefeated=false; bossStage=0; playerDeaths=0; playerGameOver=false;
     setStage(selectedStage); ictx.clearRect(0,0,SIZE,SIZE);
     const sp=(STAGES[selectedStage]||STAGES.normal).spawns;
     shots=[]; bombs=[]; bombFx=[]; splats=[]; pickups=[]; itemSpawnT=8; bombRush=0;
@@ -1173,8 +1180,9 @@
     if(gameMode==='score'){
       bots=[];                                  // スコアアタック：敵なし、ひたすら塗る
     } else if(gameMode==='boss'){
-      boss=mkBoss(SIZE/2, 70);
+      bossStage=0; boss=mkBoss(BOSS_TYPES[0]);
       bots=[ mkChar(sp.ally.x,sp.ally.y,1,true), boss ];   // 味方CPU＋ボス
+      showBossIntro(BOSS_TYPES[0]);
     } else {
       bots=[
         mkChar(sp.ally.x,sp.ally.y,1,true),   // 味方CPU
@@ -1628,49 +1636,99 @@
     decayBuffs(b,dt);
   }
 
-  // ---- ボス戦 ----
-  function mkBoss(x,y){
-    const hp={easy:1300, normal:1900, hard:2600}[difficulty]||1900;
-    return {x,y,px:x,py:y,team:2,r:34,baseX:x,baseY:y,isBot:true,isBoss:true,
+  // ---- ボス戦（3種類を順番に：クラーケン→イカ→アンコウ）----
+  const BOSS_TYPES=['kraken','squid','angler'];
+  const BOSS_DEF={
+    kraken:{ name:'クラーケン', hp:{easy:1300,normal:1900,hard:2600}, r:34, speed:122, stop:120, cd:1.18, color:'#9333b8' },
+    squid: { name:'イカ',       hp:{easy:1200,normal:1700,hard:2300}, r:32, speed:130, stop:230, cd:1.05, color:'#3f7fe0' },
+    angler:{ name:'アンコウ',    hp:{easy:1500,normal:2200,hard:3000}, r:40, speed:72,  stop:150, cd:2.1,  color:'#5e6b4e' },
+  };
+  let bossStage=0;
+  function mkBoss(type){
+    const def=BOSS_DEF[type]||BOSS_DEF.kraken;
+    const hp=def.hp[difficulty]||def.hp.normal;
+    const x=SIZE/2, y=70;
+    return {x,y,px:x,py:y,team:2,r:def.r,baseX:x,baseY:y,isBot:true,isBoss:true,bossType:type,def,
       hp,maxHp:hp,ink:9999,maxInk:9999,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,spin:0,
       dodgeT:0,dodgeCd:0,dodgeX:0,dodgeY:0,speedT:0,shieldT:0,rainbowT:0,
       aimx:0,aimy:1,tx:x,ty:y,stuck:0,fireT:0,wob:0,weapon:'handgun',bossCd:2.2};
   }
   function updateBoss(b,dt){
     if(!b.alive) return;
-    // いちばん近いチーム1（プレイヤー／味方）へゆっくり接近
+    const def=b.def;
+    // いちばん近いチーム1（プレイヤー／味方）へ接近
     let target=null,nd=1e9;
     for(const o of allChars){ if(o.team===b.team||!o.alive) continue;
       const od=Math.hypot(o.x-b.x,o.y-b.y); if(od<nd){nd=od;target=o;} }
     if(target){
       let dx=target.x-b.x, dy=target.y-b.y; const d=Math.hypot(dx,dy)||1; dx/=d;dy/=d;
       b.aimx=dx; b.aimy=dy;
-      if(d>120){ const speed=122*DIFF().speed*dt; b.px=b.x;b.py=b.y; moveChar(b,dx*speed,dy*speed); }
+      const speed=def.speed*DIFF().speed*dt; b.px=b.x;b.py=b.y;
+      if(d>def.stop){ moveChar(b,dx*speed,dy*speed); }
+      else if(b.bossType==='squid' && d<def.stop*0.7){ moveChar(b,-dx*speed,-dy*speed); } // イカは距離をとる
     }
     paintCircle(b.x,b.y,b.team,30);   // 進みながら大きく塗る
     b.bossCd-=dt;
-    if(b.bossCd<=0){ b.bossCd=1.18*DIFF().cd; bossAttack(b,target); }   // 攻撃の間隔を短く
+    if(b.bossCd<=0){ b.bossCd=def.cd*DIFF().cd; bossAttack(b,target); }
     b.hitT+=dt;
     if(b.inv>0) b.inv-=dt;
   }
-  function pushBossShot(b,a){
-    const sp=390;
+  function pushBossShot(b,a,o){
+    o=o||{};
+    const sp=o.sp||390;
     shots.push({x:b.x+Math.cos(a)*(b.r+4), y:b.y+Math.sin(a)*(b.r+4),
-      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:620,
-      damage:50, splatHit:18, splatWall:18, flyOver:false, weaponType:'boss', r:8});
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:o.maxD||620,
+      damage:o.damage||50, splatHit:o.splatHit||18, splatWall:18, flyOver:false, weaponType:'boss', r:o.r||8});
+  }
+  // アンコウ：大きいインク弾を投げる（ボム風・着弾で特大の塗り＆ダメージ）
+  function bossLobBomb(b,target){
+    if(!target) return;
+    for(let k=0;k<2;k++){
+      let tx=target.x+(Math.random()*2-1)*70, ty=target.y+(Math.random()*2-1)*70;
+      tx=Math.max(14,Math.min(SIZE-14,tx)); ty=Math.max(14,Math.min(SIZE-14,ty));
+      const dist=Math.hypot(tx-b.x,ty-b.y);
+      bombs.push({sx:b.x,sy:b.y,tx,ty,x:b.x,y:b.y,arc:0,t:0,dur:0.55+dist/600,team:b.team,
+        dmg:60, dmgR:110, splatR:100});   // 一撃のインク量が非常に大きい
+    }
   }
   function bossAttack(b,target){
     bombFx.push({x:b.x,y:b.y,r:0,max:90});   // 攻撃の予兆リング
-    const N=14; for(let i=0;i<N;i++) pushBossShot(b, i/N*Math.PI*2);   // 全方位リング
-    if(target){ const ta=Math.atan2(target.y-b.y,target.x-b.x);       // プレイヤー狙いの5連
-      for(let k=-2;k<=2;k++) pushBossShot(b, ta+k*0.16); }
+    const ta = target ? Math.atan2(target.y-b.y,target.x-b.x) : Math.atan2(b.aimy,b.aimx);
+    if(b.bossType==='squid'){
+      // ライフルのように遠く・速い弾を3点バースト
+      for(let k=-1;k<=1;k++) pushBossShot(b, ta+k*0.05, {sp:580, maxD:1100, damage:42, r:6, splatHit:14});
+    } else if(b.bossType==='angler'){
+      bossLobBomb(b,target);
+    } else {
+      // クラーケン：全方位リング＋狙い5連
+      const N=14; for(let i=0;i<N;i++) pushBossShot(b, i/N*Math.PI*2);
+      for(let k=-2;k<=2;k++) pushBossShot(b, ta+k*0.16);
+    }
   }
   function bossDie(b){
-    b.alive=false; b.hp=0; bossDefeated=true;
+    b.alive=false; b.hp=0;
     splat(b.x,b.y,1,120);   // 倒したらプレイヤー色で大きく塗る（ごほうび感）
     bombFx.push({x:b.x,y:b.y,r:0,max:300});
     for(let k=0;k<24;k++){ splats.push({x:b.x,y:b.y,vx:(Math.random()*2-1)*260,vy:(Math.random()*2-1)*260,life:0.7,team:1}); }
-    endGame();
+    bossStage++;
+    if(bossStage < BOSS_TYPES.length){ spawnNextBoss(); }   // 次のボスへ
+    else { bossDefeated=true; endGame(); }                  // 3体すべて撃破でクリア
+  }
+  // 次のボスを出現させ、制限時間をリセット（プレイヤーは回復してひと息）
+  function spawnNextBoss(){
+    const nb=mkBoss(BOSS_TYPES[bossStage]); declip(nb);
+    bots=bots.filter(x=>!x.isBoss); allChars=allChars.filter(x=>!x.isBoss);
+    bots.push(nb); allChars.push(nb); boss=nb;
+    let round=(MODES.boss).round; if(difficulty==='hard') round=50;
+    timeLeft=round; timerEl.textContent=round; timerEl.classList.remove('warn');
+    if(player){ player.hp=player.maxHp; player.inv=Math.max(player.inv,1.0); }
+    showBossIntro(BOSS_TYPES[bossStage]);
+  }
+  function showBossIntro(type){
+    const el=document.getElementById('bossIntro'); if(!el) return;
+    el.textContent='👾 '+(BOSS_DEF[type]||BOSS_DEF.kraken).name+' とうじょう！';
+    el.classList.add('show');
+    clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1900);
   }
 
   function updateShots(dt){
@@ -1756,8 +1814,67 @@
     gctx.closePath();gctx.fill();gctx.stroke();
     gctx.restore();
   }
-  // ボス＝海の生き物（タコ／クラーケン）。丸ではなく、うねる足＋とがった頭＋大きな目で描く
-  function drawBoss(c,t){ drawKraken(c.x,c.y,c.r,t,Math.atan2(c.aimy,c.aimx)); }
+  // ボス＝海の生き物。種類ごとに見た目を変える（丸ではなく生き物の形）
+  function drawBoss(c,t){ drawBossShape(c.bossType,c.x,c.y,c.r,t,Math.atan2(c.aimy,c.aimx)); }
+  function drawBossShape(type,x,y,r,t,dir){
+    if(type==='squid') drawSquid(x,y,r,t,dir);
+    else if(type==='angler') drawAnglerfish(x,y,r,t,dir);
+    else drawKraken(x,y,r,t,dir);
+  }
+  // イカ：とがった胴＋ヒレ＋下に伸びる足。ライフルのように遠距離を撃つ
+  function drawSquid(x,y,r,t,dir){
+    gctx.save();
+    gctx.strokeStyle='rgba(90,150,255,'+(0.3+0.3*Math.sin(t*4))+')';gctx.lineWidth=4;
+    gctx.beginPath();gctx.arc(x,y,r+13,0,Math.PI*2);gctx.stroke();
+    gctx.lineCap='round'; gctx.strokeStyle='#2f6dd0';
+    for(let i=0;i<6;i++){ const off=(i-2.5)*r*0.22, wave=Math.sin(t*4+i)*r*0.22;
+      gctx.lineWidth=Math.max(3,r*0.15);
+      gctx.beginPath();gctx.moveTo(x+off,y+r*0.45);
+      gctx.quadraticCurveTo(x+off+wave,y+r*1.2,x+off+wave*1.4,y+r*1.9);gctx.stroke(); }
+    gctx.lineWidth=Math.max(4,r*0.2);
+    for(const s of [-1,1]){ const wave=Math.sin(t*3+s)*r*0.3;
+      gctx.beginPath();gctx.moveTo(x+s*r*0.45,y+r*0.4);
+      gctx.quadraticCurveTo(x+s*r*0.9+wave,y+r*1.5,x+s*r*0.6+wave,y+r*2.15);gctx.stroke(); }
+    gctx.fillStyle='#3f7fe0';gctx.strokeStyle='#000';gctx.lineWidth=4;   // 胴（とがった円すい）
+    gctx.beginPath();
+    gctx.moveTo(x,y-r*1.7);
+    gctx.bezierCurveTo(x+r*0.95,y-r*0.9,x+r*0.8,y+r*0.5,x,y+r*0.6);
+    gctx.bezierCurveTo(x-r*0.8,y+r*0.5,x-r*0.95,y-r*0.9,x,y-r*1.7);
+    gctx.closePath();gctx.fill();gctx.stroke();
+    gctx.fillStyle='#5a96f0';                                            // ヒレ
+    for(const s of [-1,1]){ gctx.beginPath();gctx.moveTo(x+s*r*0.45,y-r*1.2);
+      gctx.lineTo(x+s*r*1.05,y-r*1.5);gctx.lineTo(x+s*r*0.45,y-r*0.75);gctx.closePath();gctx.fill();gctx.stroke(); }
+    const eyeY=y-r*0.15, exo=r*0.4;                                      // 目
+    for(const s of [-1,1]){ gctx.fillStyle='#fff';gctx.strokeStyle='#000';gctx.lineWidth=2;
+      gctx.beginPath();gctx.arc(x+s*exo,eyeY,r*0.24,0,Math.PI*2);gctx.fill();gctx.stroke();
+      gctx.fillStyle='#111';gctx.beginPath();gctx.arc(x+s*exo+Math.cos(dir)*r*0.05,eyeY+Math.sin(dir)*r*0.05,r*0.11,0,Math.PI*2);gctx.fill(); }
+    gctx.restore();
+  }
+  // アンコウ：まるい胴＋大きな歯の口＋光るちょうちん。ボムのように特大インクを投げる
+  function drawAnglerfish(x,y,r,t,dir){
+    gctx.save();
+    gctx.strokeStyle='rgba(255,210,90,'+(0.3+0.3*Math.sin(t*4))+')';gctx.lineWidth=4;
+    gctx.beginPath();gctx.arc(x,y,r+13,0,Math.PI*2);gctx.stroke();
+    gctx.fillStyle='#4a5240';gctx.strokeStyle='#000';gctx.lineWidth=3;   // 尾びれ
+    gctx.beginPath();gctx.moveTo(x+r*0.85,y);gctx.lineTo(x+r*1.6,y-r*0.5);gctx.lineTo(x+r*1.6,y+r*0.5);gctx.closePath();gctx.fill();gctx.stroke();
+    gctx.fillStyle='#5e6b4e';gctx.lineWidth=4;                           // 胴（まるい）
+    gctx.beginPath();gctx.ellipse(x,y,r*1.1,r*0.95,0,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.fillStyle='#1e1e1e';                                           // 大きな口
+    gctx.beginPath();gctx.ellipse(x,y+r*0.3,r*0.78,r*0.42,0,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.fillStyle='#fff';                                              // ギザギザの歯
+    for(let i=-3;i<=3;i++){ const tx=x+i*r*0.22;
+      gctx.beginPath();gctx.moveTo(tx-r*0.06,y+r*0.08);gctx.lineTo(tx+r*0.06,y+r*0.08);gctx.lineTo(tx,y+r*0.3);gctx.closePath();gctx.fill();
+      gctx.beginPath();gctx.moveTo(tx-r*0.06,y+r*0.52);gctx.lineTo(tx+r*0.06,y+r*0.52);gctx.lineTo(tx,y+r*0.3);gctx.closePath();gctx.fill(); }
+    gctx.fillStyle='#fff';gctx.strokeStyle='#000';gctx.lineWidth=2;     // 目
+    gctx.beginPath();gctx.arc(x-r*0.3,y-r*0.32,r*0.25,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.fillStyle='#111';gctx.beginPath();gctx.arc(x-r*0.3+Math.cos(dir)*r*0.04,y-r*0.32+Math.sin(dir)*r*0.04,r*0.12,0,Math.PI*2);gctx.fill();
+    gctx.strokeStyle='#33301f';gctx.lineWidth=3;                        // ちょうちんの柄
+    gctx.beginPath();gctx.moveTo(x-r*0.15,y-r*0.85);gctx.quadraticCurveTo(x-r*0.7,y-r*1.5,x-r*0.15,y-r*1.65);gctx.stroke();
+    const glow=0.6+0.4*Math.sin(t*5);                                   // 光るちょうちん
+    gctx.fillStyle='rgba(255,240,150,'+glow+')';gctx.shadowColor='#ffec80';gctx.shadowBlur=18;
+    gctx.beginPath();gctx.arc(x-r*0.1,y-r*1.7,r*0.2,0,Math.PI*2);gctx.fill();gctx.shadowBlur=0;
+    gctx.restore();
+  }
   function drawKraken(x,y,r,t,dir){
     gctx.save();
     // ゆらめくオーラ
@@ -1963,7 +2080,7 @@
       if(c.isBoss){
         const R=Math.max(12, c.r*s*0.95), by=p.sy-R*0.8;
         gctx.fillStyle='rgba(0,0,0,.30)'; gctx.beginPath(); gctx.ellipse(p.sx,p.sy,R*1.8,R*0.5,0,0,Math.PI*2); gctx.fill();
-        drawKraken(p.sx, by, R, t, Math.atan2(c.aimy,c.aimx));
+        drawBossShape(c.bossType, p.sx, by, R, t, Math.atan2(c.aimy,c.aimx));
         gctx.restore(); return;
       }
       gctx.fillStyle='rgba(0,0,0,.32)'; gctx.beginPath(); gctx.ellipse(p.sx,p.sy,br,br*0.42,0,0,Math.PI*2); gctx.fill();
@@ -2064,7 +2181,7 @@
       const hr=Math.max(0, boss.hp/boss.maxHp);
       barO.style.width=(hr*100)+'%'; barB.style.width='0%';
       barO.style.background='linear-gradient(180deg,#ff6a6a,#c41f1f)';
-      lblO.textContent='👹ボスのHP'; lblB.textContent=Math.round(hr*100)+'%';
+      lblO.textContent='👹'+(boss.def?boss.def.name:'ボス')+' ('+(bossStage+1)+'/'+BOSS_TYPES.length+')'; lblB.textContent=Math.round(hr*100)+'%';
     } else {
       barO.style.background='';   // 通常色（CSS）に戻す
       barO.style.width=(c.o*100)+'%'; barB.style.width=(c.b*100)+'%';
