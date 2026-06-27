@@ -138,6 +138,25 @@
   #bomb:not(.ready) .core{background:#5e5e6c;color:#c4c6d0;}
   #bomb.ready{animation:bombpulse .6s infinite alternate;}
   @keyframes bombpulse{to{box-shadow:0 5px 0 #000,0 0 14px rgba(255,230,0,.8);}}
+  /* ---- スペシャル ---- */
+  .sp-label{font-family:"Dela Gothic One",cursive;font-size:11px;color:#161616;background:var(--yellow);
+    border:2px solid #000;border-radius:8px;padding:3px 7px;box-shadow:0 2px 0 #000;flex:none;}
+  .special-btn{flex:none;width:48px;height:48px;border-radius:50%;border:3px solid #000;padding:0;cursor:pointer;
+    box-shadow:0 3px 0 #000;background:conic-gradient(#ffd84d 0deg, rgba(255,255,255,.12) 0deg);position:relative;
+    display:flex;align-items:center;justify-content:center;touch-action:none;transition:transform .06s;}
+  .special-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #000;}
+  .special-btn .sp-core{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:19px;background:#2a2a3a;}
+  .special-btn:not(.ready) .sp-core{filter:grayscale(1) brightness(.65);}
+  .special-btn.ready{animation:sppulse .55s infinite alternate;}
+  .special-btn.ready .sp-core{background:radial-gradient(circle at 35% 30%,#fff,#ffd84d);}
+  @keyframes sppulse{to{box-shadow:0 3px 0 #000,0 0 18px rgba(255,216,77,.95);}}
+  #spReady{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:11;pointer-events:none;
+    font-family:"Dela Gothic One",cursive;font-size:18px;color:#161616;background:var(--yellow);border:3px solid #000;
+    border-radius:999px;padding:5px 18px;box-shadow:0 3px 0 #000;opacity:0;transition:opacity .25s;white-space:nowrap;}
+  #spReady.show{opacity:1;}
+  .sp-thumb{width:100%;height:96px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:48px;background:#0e1626;border:2px solid var(--c,#888);box-shadow:inset 0 0 22px rgba(255,255,255,.04);}
   .tip{text-align:center;font-size:10.5px;color:#7a7a90;font-weight:700;line-height:1.5;}
 
   /* ブキ選択UI */
@@ -237,6 +256,7 @@
     <button id="viewBtn" class="view-btn">3人称</button>
     <button id="pauseBtn" class="view-btn pause-btn">‖ ポーズ</button>
     <div id="buffBar"></div>
+    <div id="spReady">⭐ スペシャル準備OK！</div>
     <div id="goText">GO!</div>
     <div id="quizBox">
       <div class="quiz-card">
@@ -253,6 +273,7 @@
         左で移動、右でねらって<b>インク発射</b>！<br>
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
         <b>ボムは自分の陣地に乗るとチャージ</b>。満タンでボタンを押すと<b>⚡九九クイズ</b>！正解すると<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
+        塗るほど<b>⭐スペシャルゲージ</b>がたまり、満タンで<b>SPボタン（PCはEキー）</b>を押すと必殺技が発動！<br>
         左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
       </div>
       <div class="status-preview" id="statusPreview">
@@ -266,7 +287,7 @@
           <span class="status-caption" id="statusCaption">ガール｜ハンドガン</span>
         </div>
       </div>
-      <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span><span class="dot" id="dot3"></span></div>
+      <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span><span class="dot" id="dot3"></span><span class="dot" id="dot4"></span></div>
 
       <!-- STEP 1：キャラクター選択 -->
       <div class="select-step show" id="stepChar">
@@ -350,13 +371,42 @@
         <div class="item-lineup" id="itemLineup"></div>
         <div class="step-btns">
           <button class="btn small ghost" id="backToCharBtn">◀ もどる</button>
+          <button class="btn small" id="toSpecialBtn">つぎへ ▶</button>
+        </div>
+      </div>
+
+      <!-- STEP 3：スペシャル選択 -->
+      <div class="select-step" id="stepSpecial">
+        <div class="weapon-select-title">③ スペシャルを選択</div>
+        <div class="pick-grid" id="specialGrid">
+          <div class="pick-card active" data-special="megapaint">
+            <span class="p-check">✓</span>
+            <div class="sp-thumb" style="--c:#ff3da6">💥</div>
+            <div class="p-name">メガペイント</div>
+            <div class="p-desc">まわりを一気にドカンと広く塗る</div>
+          </div>
+          <div class="pick-card" data-special="inkshower">
+            <span class="p-check">✓</span>
+            <div class="sp-thumb" style="--c:#36d1ff">🌧️</div>
+            <div class="p-name">インクシャワー</div>
+            <div class="p-desc">インクの雨がふって広い範囲を塗る</div>
+          </div>
+          <div class="pick-card" data-special="barrier">
+            <span class="p-check">✓</span>
+            <div class="sp-thumb" style="--c:#ffe600">🛡️</div>
+            <div class="p-name">バリア</div>
+            <div class="p-desc">数秒間むてきになって暴れられる</div>
+          </div>
+        </div>
+        <div class="step-btns">
+          <button class="btn small ghost" id="backToWeaponBtn">◀ もどる</button>
           <button class="btn small" id="toStageBtn">つぎへ ▶</button>
         </div>
       </div>
 
-      <!-- STEP 3：ステージ選択 -->
+      <!-- STEP 4：ステージ選択 -->
       <div class="select-step" id="stepStage">
-        <div class="weapon-select-title">③ ステージを選択</div>
+        <div class="weapon-select-title">④ ステージを選択</div>
         <div class="pick-grid" id="stageGrid">
           <div class="pick-card active" data-stage="normal">
             <span class="p-check">✓</span>
@@ -372,7 +422,7 @@
           </div>
         </div>
         <div class="step-btns">
-          <button class="btn small ghost" id="backToWeaponBtn">◀ もどる</button>
+          <button class="btn small ghost" id="backToSpecialBtn">◀ もどる</button>
           <button class="btn" id="startBtn">スタート</button>
         </div>
       </div>
@@ -383,6 +433,8 @@
     <img id="hudChar" class="hud-char" alt="">
     <div class="active-weapon" id="activeWeapon">ハンドガン</div>
     <div class="gauge"><div class="gauge-fill" id="inkFill"></div><span class="gauge-txt">INK</span></div>
+    <span class="sp-label">SP</span>
+    <button id="special" class="special-btn" title="スペシャル"><span class="sp-core" id="spCore">⭐</span></button>
   </div>
 
   <div class="controls">
@@ -739,6 +791,65 @@
     }
   }
 
+  // ---- スペシャル（必殺技）----
+  const SPECIALS={
+    megapaint:{name:'メガペイント', desc:'まわりを一気にドカンと塗る', icon:'💥', color:'#ff3da6'},
+    inkshower:{name:'インクシャワー', desc:'インクの雨がふって広く塗る', icon:'🌧️', color:'#36d1ff'},
+    barrier:  {name:'バリア', desc:'数秒間むてきになって暴れる', icon:'🛡️', color:'#ffe600'},
+  };
+  let specialGauge=0;            // 0→1。塗るほどたまる
+  let specialReadyShown=false;   // 「準備OK」表示を出したか
+  const SPECIAL_FILL_RATE=1/13;  // 約13秒ぶんの塗りで満タン
+  const SPECIAL_BARRIER_DURATION=6;
+  const INKSHOWER_DURATION=4.5, INKSHOWER_RATE=0.035, INKSHOWER_DROP_R=15;
+  let inkShower={t:0, team:1};
+  let rainDrops=[], rainSpawnT=0;
+
+  function activateSpecial(){
+    if(state!=='play'||!player||!player.alive||specialGauge<1) return;
+    specialGauge=0;
+    const kind=player.special||'megapaint';
+    if(kind==='megapaint'){
+      // 自分のまわりを一気に塗り、衝撃で近くの敵をやっつける
+      splat(player.x,player.y,player.team,170);
+      for(let k=0;k<10;k++){ const a=Math.random()*Math.PI*2, d=60+Math.random()*120;
+        splat(player.x+Math.cos(a)*d, player.y+Math.sin(a)*d, player.team, 55); }
+      bombFx.push({x:player.x,y:player.y,r:0,max:240});
+      for(const o of allChars){ if(o.team!==player.team && o.alive && Math.hypot(o.x-player.x,o.y-player.y)<180) damage(o,120); }
+    } else if(kind==='inkshower'){
+      inkShower.t=INKSHOWER_DURATION; inkShower.team=player.team; rainSpawnT=0;
+    } else if(kind==='barrier'){
+      // バリア中はむてき＋すばやく動ける（おたすけアイテムの仕組みを再利用）
+      player.shieldT=Math.max(player.shieldT,SPECIAL_BARRIER_DURATION);
+      player.speedT=Math.max(player.speedT,SPECIAL_BARRIER_DURATION);
+    }
+  }
+  function updateSpecial(dt){
+    if(inkShower.t>0){
+      inkShower.t=Math.max(0,inkShower.t-dt);
+      rainSpawnT-=dt;
+      while(rainSpawnT<=0){ rainSpawnT+=INKSHOWER_RATE;
+        const x=20+Math.random()*(SIZE-40), y=20+Math.random()*(SIZE-40);
+        rainDrops.push({x,y,fall:0,team:inkShower.team});
+      }
+    }
+    for(let i=rainDrops.length-1;i>=0;i--){ const d=rainDrops[i]; d.fall+=dt*3.2;
+      if(d.fall>=1){   // 着地：その場を塗り、真下にいる敵に小ダメージ
+        splat(d.x,d.y,d.team,INKSHOWER_DROP_R);
+        for(const o of allChars){ if(o.team!==d.team && o.alive && Math.hypot(o.x-d.x,o.y-d.y)<INKSHOWER_DROP_R+o.r) damage(o,6); }
+        rainDrops.splice(i,1);
+      }
+    }
+  }
+  function drawRain(){   // 上から落ちてくるインクの線（見下ろし視点）
+    for(const d of rainDrops){ const h=42*(1-d.fall);
+      gctx.strokeStyle=COLOR[d.team]; gctx.globalAlpha=0.85; gctx.lineWidth=3;
+      gctx.beginPath(); gctx.moveTo(d.x,d.y-h-10); gctx.lineTo(d.x,d.y-10); gctx.stroke();
+      gctx.globalAlpha=1; gctx.fillStyle=COLOR[d.team];
+      gctx.beginPath(); gctx.arc(d.x,d.y-10,3,0,Math.PI*2); gctx.fill();
+    }
+  }
+
   // ---- AI ----
   function pickTarget(b){
     let best=null,bs=-1;
@@ -839,6 +950,7 @@
       return;
     }
     if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) bombPress(); return; }
+    if(e.key==='e'||e.key==='E'){ e.preventDefault(); if(!e.repeat) activateSpecial(); return; }
     keys[e.key.toLowerCase()]=true;
   });
   window.addEventListener('keyup',e=>{
@@ -951,6 +1063,13 @@
   bombBtn.addEventListener('touchcancel',e=>{bombRelease();});
   bombBtn.addEventListener('mousedown',e=>{e.preventDefault();bombPress();});
 
+  // スペシャルボタン
+  const specialBtn=document.getElementById('special'), spCore=document.getElementById('spCore');
+  if(specialBtn){
+    specialBtn.addEventListener('touchstart',e=>{e.preventDefault();activateSpecial();},{passive:false});
+    specialBtn.addEventListener('mousedown',e=>{e.preventDefault();activateSpecial();});
+  }
+
   const viewBtn=document.getElementById('viewBtn');
   function toggleView(){
     viewIdx=(viewIdx+1)%VIEW_ORDER.length; viewMode=VIEW_ORDER[viewIdx];
@@ -967,7 +1086,7 @@
   // メニュー画面のHTMLを保存しておき、いつでも復元できるようにする
   const MENU_HTML=overlay.innerHTML;
 
-  let selectedWeapon = 'handgun', selectedChar = 'girl';
+  let selectedWeapon = 'handgun', selectedChar = 'girl', selectedSpecial = 'megapaint';
 
   function resetGame(){
     setStage(selectedStage); ictx.clearRect(0,0,SIZE,SIZE);
@@ -977,6 +1096,9 @@
     player=mkChar(sp.player.x,sp.player.y,1,false);
     player.weapon = selectedWeapon;
     player.char = selectedChar;
+    player.special = selectedSpecial;
+    specialGauge=0; specialReadyShown=false; inkShower.t=0; rainDrops=[]; rainSpawnT=0;
+    { const sr=document.getElementById('spReady'); if(sr) sr.classList.remove('show'); }
     bots=[
       mkChar(sp.ally.x,sp.ally.y,1,true),   // 味方CPU
       mkChar(sp.e1.x,  sp.e1.y,  2,true),   // 敵CPU
@@ -1137,12 +1259,10 @@
   });
 
   // ---- メニューのボタン（キャラ→ブキの2ステップ）をバインド（メニュー復元時に再呼び出し）----
-  function gotoStep(n){   // 1=キャラ, 2=ブキ, 3=ステージ
-    const sc=document.getElementById('stepChar'), sw=document.getElementById('stepWeapon'), ss=document.getElementById('stepStage');
-    const d1=document.getElementById('dot1'), d2=document.getElementById('dot2'), d3=document.getElementById('dot3');
-    if(!sc||!sw) return;
-    sc.classList.toggle('show', n===1); sw.classList.toggle('show', n===2); if(ss) ss.classList.toggle('show', n===3);
-    if(d1) d1.classList.toggle('on', n===1); if(d2) d2.classList.toggle('on', n===2); if(d3) d3.classList.toggle('on', n===3);
+  function gotoStep(n){   // 1=キャラ, 2=ブキ, 3=スペシャル, 4=ステージ
+    const steps={1:'stepChar',2:'stepWeapon',3:'stepSpecial',4:'stepStage'};
+    for(const k in steps){ const el=document.getElementById(steps[k]); if(el) el.classList.toggle('show', +k===n); }
+    for(let i=1;i<=4;i++){ const d=document.getElementById('dot'+i); if(d) d.classList.toggle('on', i===n); }
   }
   function bindMenu(){
     // キャラ選択カード
@@ -1165,6 +1285,16 @@
       card.addEventListener('touchstart', pick, {passive:false});
       card.classList.toggle('active', card.dataset.weapon===selectedWeapon);
     });
+    // スペシャル選択カード
+    document.querySelectorAll('#specialGrid .pick-card').forEach(card => {
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#specialGrid .pick-card').forEach(c=>c.classList.remove('active'));
+        card.classList.add('active'); selectedSpecial = card.dataset.special;
+      };
+      card.addEventListener('click', pick);
+      card.addEventListener('touchstart', pick, {passive:false});
+      card.classList.toggle('active', card.dataset.special===selectedSpecial);
+    });
     // おたすけアイテムのオン／オフ
     const sw=document.getElementById('bombRushSwitch'), tog=document.getElementById('bombRushToggle');
     if(sw){
@@ -1186,13 +1316,11 @@
       card.addEventListener('touchstart', pick, {passive:false});
       card.classList.toggle('active', card.dataset.stage===selectedStage);
     });
-    // ステップ移動
-    const toW=document.getElementById('toWeaponBtn'), back=document.getElementById('backToCharBtn');
-    const toS=document.getElementById('toStageBtn'), back2=document.getElementById('backToWeaponBtn');
-    if(toW){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; toW.onclick=f; toW.ontouchstart=f; }
-    if(back){ const f=e=>{e&&e.preventDefault();gotoStep(1);}; back.onclick=f; back.ontouchstart=f; }
-    if(toS){ const f=e=>{e&&e.preventDefault();gotoStep(3);}; toS.onclick=f; toS.ontouchstart=f; }
-    if(back2){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; back2.onclick=f; back2.ontouchstart=f; }
+    // ステップ移動（1:キャラ → 2:ブキ → 3:スペシャル → 4:ステージ）
+    const nav=[['toWeaponBtn',2],['backToCharBtn',1],['toSpecialBtn',3],['backToWeaponBtn',2],
+               ['toStageBtn',4],['backToSpecialBtn',3]];
+    nav.forEach(([id,step])=>{ const el=document.getElementById(id);
+      if(el){ const f=e=>{e&&e.preventDefault();gotoStep(step);}; el.onclick=f; el.ontouchstart=f; } });
     // スタート
     const sb=document.getElementById('startBtn');
     if(sb){ const f=e=>{e&&e.preventDefault();startCountdown();}; sb.onclick=f; sb.ontouchstart=f; }
@@ -1288,6 +1416,9 @@
         player.ink=Math.max(0,player.ink-pw.rollInk*dt);
       } else paintCircle(player.x,player.y,player.team,7*paintMul);
     }
+    // スペシャルゲージ：塗っている（発射 or ローラー移動）ときにたまる
+    if(player.alive && (firing || (pw.isRoller && moving && !player.swim)))
+      specialGauge=Math.min(1, specialGauge + dt*SPECIAL_FILL_RATE);
     // スピナーの回転は撃たないと徐々に落ちる
     if(!firing) player.spin=Math.max(0,(player.spin||0)-dt*1.5);
 
@@ -1694,6 +1825,23 @@
     bombBtn.style.background='conic-gradient('+ringColor+' '+deg+'deg, rgba(255,255,255,.12) '+deg+'deg)';
     if(bombGauge>=1||bombRush>0) bombBtn.classList.add('ready'); else bombBtn.classList.remove('ready');
     updateBuffBar();
+    updateSpecialHUD();
+  }
+  // スペシャルボタン（ゲージのリング・準備OK表示）
+  function updateSpecialHUD(){
+    if(!specialBtn) return;
+    const def=SPECIALS[selectedSpecial]||SPECIALS.megapaint;
+    if(spCore) spCore.textContent=def.icon;
+    const deg=specialGauge*360;
+    specialBtn.style.background='conic-gradient('+def.color+' '+deg+'deg, rgba(255,255,255,.12) '+deg+'deg)';
+    const ready=specialGauge>=1;
+    specialBtn.classList.toggle('ready', ready);
+    // 満タンになった瞬間だけ「準備OK！」を1.6秒表示
+    const sr=document.getElementById('spReady');
+    if(ready && !specialReadyShown){ specialReadyShown=true;
+      if(sr){ sr.textContent='⭐ スペシャル '+def.name+' OK！'; sr.classList.add('show');
+        setTimeout(()=>sr.classList.remove('show'),1600); } }
+    if(!ready) specialReadyShown=false;
   }
   // プレイヤーが取得中のおたすけアイテム効果を画面上に表示
   let buffSig='';
@@ -1724,7 +1872,7 @@
       goText.textContent=lab[idx]; goText.style.opacity=1-(goTimer-idx); goText.style.transform='scale('+(1+(goTimer-idx)*0.4)+')';
       if(goTimer>=3.7){state='play';last=ts;goText.style.opacity=0;} }
     else if(state==='play'){
-      updatePlayer(dt); bots.forEach(b=>updateBot(b,dt)); updateShots(dt); updateBombs(dt); updateSplats(dt); updatePickups(dt);
+      updatePlayer(dt); bots.forEach(b=>updateBot(b,dt)); updateShots(dt); updateBombs(dt); updateSplats(dt); updatePickups(dt); updateSpecial(dt);
       timeLeft-=dt; if(timeLeft<0)timeLeft=0; const sec=Math.ceil(timeLeft); timerEl.textContent=sec;
       if(sec<=10) timerEl.classList.add('warn'); if(timeLeft<=0) endGame();
     } else if(state==='pause'||state==='quiz'){
@@ -1758,6 +1906,7 @@
         gctx.drawImage(inkCv,0,0);
         drawObstacles(); drawFlyingSplats(); drawShots(); drawBombs(); drawBombFx(); drawPickups(); drawLandingIndicator();
         if(player){ bots.forEach(b=>drawChar(b,t)); drawChar(player,t); }
+        drawRain();
       gctx.restore();
 
     }
