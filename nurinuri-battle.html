@@ -1756,6 +1756,56 @@
     gctx.closePath();gctx.fill();gctx.stroke();
     gctx.restore();
   }
+  // ボス＝海の生き物（タコ／クラーケン）。丸ではなく、うねる足＋とがった頭＋大きな目で描く
+  function drawBoss(c,t){ drawKraken(c.x,c.y,c.r,t,Math.atan2(c.aimy,c.aimx)); }
+  function drawKraken(x,y,r,t,dir){
+    gctx.save();
+    // ゆらめくオーラ
+    gctx.strokeStyle='rgba(150,60,210,'+(0.35+0.35*Math.sin(t*4))+')'; gctx.lineWidth=4;
+    gctx.beginPath();gctx.arc(x,y,r+13+Math.sin(t*4)*3,0,Math.PI*2);gctx.stroke();
+    // 8本のうねる足（頭より先に描いて、頭の下から生えて見えるように）
+    const arms=8;
+    gctx.lineCap='round';
+    for(let i=0;i<arms;i++){
+      const base=i/arms*Math.PI*2;
+      const wave=Math.sin(t*3+i*0.8);
+      const a=base+wave*0.25;
+      gctx.strokeStyle = i%2 ? '#5a1f86' : '#7a2aa6';
+      gctx.lineWidth=Math.max(5, r*0.34);
+      const x1=x+Math.cos(a)*r*0.8,  y1=y+Math.sin(a)*r*0.8;
+      const cx=x+Math.cos(a)*r*1.6 + Math.cos(a+1.57)*r*0.6*wave;
+      const cy=y+Math.sin(a)*r*1.6 + Math.sin(a+1.57)*r*0.6*wave;
+      const ex=x+Math.cos(a)*r*2.25, ey=y+Math.sin(a)*r*2.25;
+      gctx.beginPath();gctx.moveTo(x1,y1);gctx.quadraticCurveTo(cx,cy,ex,ey);gctx.stroke();
+      // 足先の吸ばん風の丸
+      gctx.fillStyle='#3f1660';gctx.beginPath();gctx.arc(ex,ey,r*0.12,0,Math.PI*2);gctx.fill();
+    }
+    // 頭（マントル）：上がとがった水滴形のドーム
+    gctx.fillStyle='#9333b8'; gctx.strokeStyle='#000'; gctx.lineWidth=4;
+    gctx.beginPath();
+    gctx.moveTo(x, y-r*1.5);                                  // てっぺん（とがり）
+    gctx.bezierCurveTo(x+r*1.15, y-r*1.2, x+r*1.05, y+r*0.5, x, y+r*0.65);
+    gctx.bezierCurveTo(x-r*1.05, y+r*0.5, x-r*1.15, y-r*1.2, x, y-r*1.5);
+    gctx.closePath(); gctx.fill(); gctx.stroke();
+    // ハイライト
+    gctx.fillStyle='rgba(255,255,255,.18)';
+    gctx.beginPath();gctx.ellipse(x-r*0.35,y-r*0.6,r*0.28,r*0.5,0,0,Math.PI*2);gctx.fill();
+    // 大きな目（向いている方向にちょっと寄る）＋怒り眉
+    const eyeY=y-r*0.1, exo=r*0.42, look=r*0.06;
+    for(const s of [-1,1]){
+      const exx=x+s*exo;
+      gctx.fillStyle='#fff';gctx.strokeStyle='#000';gctx.lineWidth=2;
+      gctx.beginPath();gctx.arc(exx, eyeY, r*0.27, 0, Math.PI*2);gctx.fill();gctx.stroke();
+      gctx.fillStyle='#111';
+      gctx.beginPath();gctx.arc(exx+Math.cos(dir)*look, eyeY+Math.sin(dir)*look, r*0.13, 0, Math.PI*2);gctx.fill();
+    }
+    gctx.strokeStyle='#000';gctx.lineWidth=3;
+    gctx.beginPath();
+    gctx.moveTo(x-exo-r*0.22, eyeY-r*0.34); gctx.lineTo(x-exo+r*0.2, eyeY-r*0.12);
+    gctx.moveTo(x+exo+r*0.22, eyeY-r*0.34); gctx.lineTo(x+exo-r*0.2, eyeY-r*0.12);
+    gctx.stroke();
+    gctx.restore();
+  }
   function drawChar(c,t){
     if(!c.alive){
       gctx.save();gctx.globalAlpha=.5;gctx.fillStyle=COLOR[c.team];gctx.strokeStyle='#000';gctx.lineWidth=2;
@@ -1781,16 +1831,13 @@
       gctx.restore(); }
     if(c.swim){ gctx.strokeStyle=COLOR_DK[c.team];gctx.lineWidth=2;
       gctx.beginPath();gctx.ellipse(c.x,c.y,c.r+4+Math.sin(t*8+c.wob)*2,c.r,0,0,Math.PI*2);gctx.stroke(); }
-    gctx.fillStyle='rgba(0,0,0,.32)';gctx.beginPath();gctx.ellipse(c.x,c.y+c.r*0.7,c.r,c.r*0.5,0,0,Math.PI*2);gctx.fill();
-    gctx.fillStyle=c.isBoss?'#8a1228':COLOR[c.team];gctx.strokeStyle='#000';gctx.lineWidth=c.isBoss?4:3;
-    gctx.beginPath();gctx.arc(c.x,c.y,c.r,0,Math.PI*2);gctx.fill();gctx.stroke();
     if(c.isBoss){
-      // ボスはおにの顔＋ゆらめくオーラ
-      gctx.save(); gctx.strokeStyle='rgba(255,60,60,'+(0.5+0.4*Math.sin(t*6))+')'; gctx.lineWidth=4;
-      gctx.beginPath();gctx.arc(c.x,c.y,c.r+8+Math.sin(t*6)*3,0,Math.PI*2);gctx.stroke(); gctx.restore();
-      gctx.font=(c.r*1.25)+'px sans-serif';gctx.textAlign='center';gctx.textBaseline='middle';
-      gctx.fillText('👹',c.x,c.y+1);
+      gctx.fillStyle='rgba(0,0,0,.30)';gctx.beginPath();gctx.ellipse(c.x,c.y+c.r*0.9,c.r*2.0,c.r*0.7,0,0,Math.PI*2);gctx.fill();
+      drawBoss(c,t);   // 海の生き物（タコ／クラーケン）として描く
     } else {
+      gctx.fillStyle='rgba(0,0,0,.32)';gctx.beginPath();gctx.ellipse(c.x,c.y+c.r*0.7,c.r,c.r*0.5,0,0,Math.PI*2);gctx.fill();
+      gctx.fillStyle=COLOR[c.team];gctx.strokeStyle='#000';gctx.lineWidth=3;
+      gctx.beginPath();gctx.arc(c.x,c.y,c.r,0,Math.PI*2);gctx.fill();gctx.stroke();
       const a=Math.atan2(c.aimy,c.aimx);
       gctx.fillStyle=COLOR_DK[c.team];
       gctx.beginPath();gctx.moveTo(c.x+Math.cos(a)*(c.r+9),c.y+Math.sin(a)*(c.r+9));
@@ -1913,6 +1960,12 @@
       }
       gctx.save();
       if(c.inv>0 && Math.floor(t*20)%2===0) gctx.globalAlpha=.4;
+      if(c.isBoss){
+        const R=Math.max(12, c.r*s*0.95), by=p.sy-R*0.8;
+        gctx.fillStyle='rgba(0,0,0,.30)'; gctx.beginPath(); gctx.ellipse(p.sx,p.sy,R*1.8,R*0.5,0,0,Math.PI*2); gctx.fill();
+        drawKraken(p.sx, by, R, t, Math.atan2(c.aimy,c.aimx));
+        gctx.restore(); return;
+      }
       gctx.fillStyle='rgba(0,0,0,.32)'; gctx.beginPath(); gctx.ellipse(p.sx,p.sy,br,br*0.42,0,0,Math.PI*2); gctx.fill();
       const cy=p.sy-br;
       if(c.swim){ gctx.strokeStyle=COLOR_DK[c.team]; gctx.lineWidth=Math.max(1,2*s);
