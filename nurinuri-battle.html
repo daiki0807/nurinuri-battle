@@ -35,6 +35,10 @@
     border:3px solid #000;box-shadow:0 4px 0 #000;}
   .timer.warn{color:var(--yellow);animation:pulse .5s infinite alternate;}
   @keyframes pulse{to{transform:scale(1.08);}}
+  .lives{display:none;align-items:center;gap:2px;font-size:17px;line-height:1;letter-spacing:1px;
+    filter:drop-shadow(1px 1px 0 #000);}
+  .lives.show{display:flex;}
+  .lives .lost{filter:grayscale(1) opacity(.5);}
 
   .bar-wrap{position:relative;height:28px;border-radius:16px;overflow:hidden;border:3px solid #000;box-shadow:0 4px 0 #000;background:#222;}
   .bar-o,.bar-b{position:absolute;top:0;height:100%;transition:width .12s ease;}
@@ -261,6 +265,7 @@
 <div id="app">
   <div class="topline">
     <div class="logo">ぬりぬりバトル</div>
+    <div class="lives" id="lives"></div>
     <div class="timer" id="timer">60</div>
   </div>
   <div class="bar-wrap">
@@ -639,6 +644,9 @@
   }
   let player, bots=[], allChars=[], shots=[], bombs=[], bombFx=[], splats=[];
   let boss=null, bossDefeated=false;
+  // プレイヤーのライフ：MAX_DEATHS 回やられたらゲームオーバー
+  const MAX_DEATHS=4;
+  let playerDeaths=0, playerGameOver=false;
 
   function moveChar(c,dx,dy){
     const pad=c.r;
@@ -703,6 +711,10 @@
     splat(c.x,c.y, c.team===1?2:1, 40);
     for(let k=0;k<8;k++){ splats.push({x:c.x,y:c.y,
       vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, life:0.5, team:c.team}); }
+    if(c===player){
+      playerDeaths++;
+      if(playerDeaths>=MAX_DEATHS){ playerGameOver=true; endGame(); }   // 4回やられたらゲームオーバー
+    }
   }
   function respawnChar(c){
     c.alive=true; c.hp=c.maxHp; c.ink=c.maxInk; c.inv=1.2;
@@ -1147,7 +1159,7 @@
 
   function resetGame(){
     gameMode=selectedMode; difficulty=selectedDifficulty;   // メニューの選択を反映
-    boss=null; bossDefeated=false;
+    boss=null; bossDefeated=false; playerDeaths=0; playerGameOver=false;
     setStage(selectedStage); ictx.clearRect(0,0,SIZE,SIZE);
     const sp=(STAGES[selectedStage]||STAGES.normal).spawns;
     shots=[]; bombs=[]; bombFx=[]; splats=[]; pickups=[]; itemSpawnT=8; bombRush=0;
@@ -1313,7 +1325,14 @@
     state='result';
     const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
     let titleHtml, descHtml, extra='', win=false;
-    if(gameMode==='boss'){
+    if(playerGameOver){
+      // 4回やられてゲームオーバー（勝敗より優先）
+      titleHtml = '💀 ゲームオーバー…';
+      extra = '<div class="result-pct"><span class="b">4回 やられてしまった</span></div>';
+      descHtml = gameMode==='boss'
+        ? 'おしい！ボスの攻撃をかわしながら、もう一回ちょうせん！'
+        : '4回やられてしまった…つぎは敵インクに気をつけよう！';
+    } else if(gameMode==='boss'){
       win=bossDefeated;
       titleHtml = win ? '🏆 <span class="o">ボスをたおした！</span>' : 'ボスにげられた…';
       extra = '<div class="result-pct"><span class="o">フィールドを '+op+'% ぬった</span></div>';
@@ -1611,7 +1630,7 @@
 
   // ---- ボス戦 ----
   function mkBoss(x,y){
-    const hp={easy:1000, normal:1500, hard:2100}[difficulty]||1500;
+    const hp={easy:1300, normal:1900, hard:2600}[difficulty]||1900;
     return {x,y,px:x,py:y,team:2,r:34,baseX:x,baseY:y,isBot:true,isBoss:true,
       hp,maxHp:hp,ink:9999,maxInk:9999,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,spin:0,
       dodgeT:0,dodgeCd:0,dodgeX:0,dodgeY:0,speedT:0,shieldT:0,rainbowT:0,
@@ -1626,19 +1645,19 @@
     if(target){
       let dx=target.x-b.x, dy=target.y-b.y; const d=Math.hypot(dx,dy)||1; dx/=d;dy/=d;
       b.aimx=dx; b.aimy=dy;
-      if(d>120){ const speed=112*DIFF().speed*dt; b.px=b.x;b.py=b.y; moveChar(b,dx*speed,dy*speed); }
+      if(d>120){ const speed=122*DIFF().speed*dt; b.px=b.x;b.py=b.y; moveChar(b,dx*speed,dy*speed); }
     }
     paintCircle(b.x,b.y,b.team,30);   // 進みながら大きく塗る
     b.bossCd-=dt;
-    if(b.bossCd<=0){ b.bossCd=1.28*DIFF().cd; bossAttack(b,target); }   // 攻撃の間隔を短く
+    if(b.bossCd<=0){ b.bossCd=1.18*DIFF().cd; bossAttack(b,target); }   // 攻撃の間隔を短く
     b.hitT+=dt;
     if(b.inv>0) b.inv-=dt;
   }
   function pushBossShot(b,a){
-    const sp=370;
+    const sp=390;
     shots.push({x:b.x+Math.cos(a)*(b.r+4), y:b.y+Math.sin(a)*(b.r+4),
-      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:600,
-      damage:44, splatHit:18, splatWall:18, flyOver:false, weaponType:'boss', r:8});
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:620,
+      damage:50, splatHit:18, splatWall:18, flyOver:false, weaponType:'boss', r:8});
   }
   function bossAttack(b,target){
     bombFx.push({x:b.x,y:b.y,r:0,max:90});   // 攻撃の予兆リング
@@ -2014,6 +2033,18 @@
     if(bombGauge>=1||bombRush>0) bombBtn.classList.add('ready'); else bombBtn.classList.remove('ready');
     updateBuffBar();
     updateSpecialHUD();
+    updateLives();
+  }
+  // のこりライフ（ハート）表示。スコアアタックは敵がいないので非表示
+  function updateLives(){
+    const el=document.getElementById('lives'); if(!el) return;
+    const showLives = gameMode!=='score' && state!=='title';
+    el.classList.toggle('show', showLives);
+    if(!showLives){ el.innerHTML=''; return; }
+    const left=Math.max(0, MAX_DEATHS-playerDeaths);
+    let html='';
+    for(let i=0;i<MAX_DEATHS;i++) html += i<left ? '❤️' : '<span class="lost">🖤</span>';
+    el.innerHTML=html;
   }
   // スペシャルボタン（ゲージのリング・準備OK表示）
   function updateSpecialHUD(){
