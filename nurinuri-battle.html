@@ -1177,7 +1177,8 @@
     bombArmed=false; quizCorrect=0; quizTotal=0; quizCur=null;
     document.getElementById('quizBox').classList.remove('show');
     fpsHeading=Math.atan2(player.aimy,player.aimx); camRot=-fpsHeading-Math.PI/2;
-    const round=(MODES[gameMode]||MODES.turf).round;
+    let round=(MODES[gameMode]||MODES.turf).round;
+    if(gameMode==='boss' && difficulty==='hard') round=50;   // ボス×つよいは制限時間50秒
     timeLeft=round; timerEl.textContent=round; timerEl.classList.remove('warn');
     allChars.forEach(c=>splat(c.x,c.y,c.team,20));
   }
@@ -1625,23 +1626,23 @@
     if(target){
       let dx=target.x-b.x, dy=target.y-b.y; const d=Math.hypot(dx,dy)||1; dx/=d;dy/=d;
       b.aimx=dx; b.aimy=dy;
-      if(d>150){ const speed=60*DIFF().speed*dt; b.px=b.x;b.py=b.y; moveChar(b,dx*speed,dy*speed); }
+      if(d>120){ const speed=95*DIFF().speed*dt; b.px=b.x;b.py=b.y; moveChar(b,dx*speed,dy*speed); }
     }
     paintCircle(b.x,b.y,b.team,30);   // 進みながら大きく塗る
     b.bossCd-=dt;
-    if(b.bossCd<=0){ b.bossCd=1.7*DIFF().cd; bossAttack(b,target); }
+    if(b.bossCd<=0){ b.bossCd=1.45*DIFF().cd; bossAttack(b,target); }   // 攻撃の間隔を短く
     b.hitT+=dt;
     if(b.inv>0) b.inv-=dt;
   }
   function pushBossShot(b,a){
-    const sp=280;
+    const sp=340;
     shots.push({x:b.x+Math.cos(a)*(b.r+4), y:b.y+Math.sin(a)*(b.r+4),
-      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:520,
-      damage:24, splatHit:16, splatWall:16, flyOver:false, weaponType:'boss', r:8});
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:560,
+      damage:36, splatHit:18, splatWall:18, flyOver:false, weaponType:'boss', r:8});
   }
   function bossAttack(b,target){
     bombFx.push({x:b.x,y:b.y,r:0,max:90});   // 攻撃の予兆リング
-    const N=10; for(let i=0;i<N;i++) pushBossShot(b, i/N*Math.PI*2);   // 全方位リング
+    const N=12; for(let i=0;i<N;i++) pushBossShot(b, i/N*Math.PI*2);   // 全方位リング
     if(target){ const ta=Math.atan2(target.y-b.y,target.x-b.x);       // プレイヤー狙いの3連
       for(let k=-1;k<=1;k++) pushBossShot(b, ta+k*0.18); }
   }
