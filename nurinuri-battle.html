@@ -1611,7 +1611,7 @@
 
   // ---- ボス戦 ----
   function mkBoss(x,y){
-    const hp={easy:800, normal:1200, hard:1700}[difficulty]||1200;
+    const hp={easy:1000, normal:1500, hard:2100}[difficulty]||1500;
     return {x,y,px:x,py:y,team:2,r:34,baseX:x,baseY:y,isBot:true,isBoss:true,
       hp,maxHp:hp,ink:9999,maxInk:9999,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,spin:0,
       dodgeT:0,dodgeCd:0,dodgeX:0,dodgeY:0,speedT:0,shieldT:0,rainbowT:0,
@@ -1626,25 +1626,25 @@
     if(target){
       let dx=target.x-b.x, dy=target.y-b.y; const d=Math.hypot(dx,dy)||1; dx/=d;dy/=d;
       b.aimx=dx; b.aimy=dy;
-      if(d>120){ const speed=95*DIFF().speed*dt; b.px=b.x;b.py=b.y; moveChar(b,dx*speed,dy*speed); }
+      if(d>120){ const speed=112*DIFF().speed*dt; b.px=b.x;b.py=b.y; moveChar(b,dx*speed,dy*speed); }
     }
     paintCircle(b.x,b.y,b.team,30);   // 進みながら大きく塗る
     b.bossCd-=dt;
-    if(b.bossCd<=0){ b.bossCd=1.45*DIFF().cd; bossAttack(b,target); }   // 攻撃の間隔を短く
+    if(b.bossCd<=0){ b.bossCd=1.28*DIFF().cd; bossAttack(b,target); }   // 攻撃の間隔を短く
     b.hitT+=dt;
     if(b.inv>0) b.inv-=dt;
   }
   function pushBossShot(b,a){
-    const sp=340;
+    const sp=370;
     shots.push({x:b.x+Math.cos(a)*(b.r+4), y:b.y+Math.sin(a)*(b.r+4),
-      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:560,
-      damage:36, splatHit:18, splatWall:18, flyOver:false, weaponType:'boss', r:8});
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:600,
+      damage:44, splatHit:18, splatWall:18, flyOver:false, weaponType:'boss', r:8});
   }
   function bossAttack(b,target){
     bombFx.push({x:b.x,y:b.y,r:0,max:90});   // 攻撃の予兆リング
-    const N=12; for(let i=0;i<N;i++) pushBossShot(b, i/N*Math.PI*2);   // 全方位リング
-    if(target){ const ta=Math.atan2(target.y-b.y,target.x-b.x);       // プレイヤー狙いの3連
-      for(let k=-1;k<=1;k++) pushBossShot(b, ta+k*0.18); }
+    const N=14; for(let i=0;i<N;i++) pushBossShot(b, i/N*Math.PI*2);   // 全方位リング
+    if(target){ const ta=Math.atan2(target.y-b.y,target.x-b.x);       // プレイヤー狙いの5連
+      for(let k=-2;k<=2;k++) pushBossShot(b, ta+k*0.16); }
   }
   function bossDie(b){
     b.alive=false; b.hp=0; bossDefeated=true;
