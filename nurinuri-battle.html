@@ -234,7 +234,7 @@
     </div>
     <div id="overlay">
       <div class="title-big"><span class="o">ぬり</span><span class="b">ぬり</span>バトル</div>
-      <div class="sub">ターフウォー｜2対2の塗り合戦・60秒</div>
+      <div class="sub" id="modeSub">ターフウォー｜2対2の塗り合戦・60秒</div>
       <div class="desc">
         左で移動、右でねらって<b>インク発射</b>！<br>
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
@@ -339,9 +339,24 @@
         </div>
       </div>
 
-      <!-- STEP 3：ステージ選択 -->
+      <!-- STEP 3：ルール・ステージ選択 -->
       <div class="select-step" id="stepStage">
-        <div class="weapon-select-title">③ ステージを選択</div>
+        <div class="weapon-select-title">③ ルールを選択</div>
+        <div class="pick-grid" id="modeGrid">
+          <div class="pick-card active" data-mode="coverage">
+            <span class="p-check">✓</span>
+            <div class="w-icon">⏱️</div>
+            <div class="p-name">ぬり合戦</div>
+            <div class="p-desc">60秒でどれだけ塗れるかを競う</div>
+          </div>
+          <div class="pick-card" data-mode="knockout">
+            <span class="p-check">✓</span>
+            <div class="w-icon">💥</div>
+            <div class="p-name">せんとりウォーズ</div>
+            <div class="p-desc">先に3キルしたチームの勝ち</div>
+          </div>
+        </div>
+        <div class="weapon-select-title">④ ステージを選択</div>
         <div class="pick-grid" id="stageGrid">
           <div class="pick-card active" data-stage="normal">
             <span class="p-check">✓</span>
@@ -430,6 +445,9 @@
       spawns:{ player:{x:500,y:930}, ally:{x:230,y:930}, e1:{x:500,y:70}, e2:{x:780,y:70} } }
   };
   let selectedStage='normal';
+  let selectedMode='coverage';   // 'coverage'=ぬり合戦（時間制）／'knockout'=せんとりウォーズ（3キル先取）
+  const KO_TARGET=3, KO_TIME_LIMIT=120;
+  let killCount={1:0,2:0};
   function setStage(key){
     const s=STAGES[key]||STAGES.normal;
     COLS=s.cols; ROWS=s.rows; SIZE=COLS*CELL;
@@ -573,9 +591,14 @@
   }
   function splatOut(c){
     c.alive=false; c.respawn=1.8;
-    splat(c.x,c.y, c.team===1?2:1, 40);
+    const killerTeam=c.team===1?2:1;
+    splat(c.x,c.y, killerTeam, 40);
     for(let k=0;k<8;k++){ splats.push({x:c.x,y:c.y,
       vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, life:0.5, team:c.team}); }
+    if(state==='play'){
+      killCount[killerTeam]=(killCount[killerTeam]||0)+1;
+      if(selectedMode==='knockout' && killCount[killerTeam]>=KO_TARGET) endGame();
+    }
   }
   function respawnChar(c){
     c.alive=true; c.hp=c.maxHp; c.ink=c.maxInk; c.inv=1.2;
@@ -949,7 +972,9 @@
     bombArmed=false; quizCorrect=0; quizTotal=0; quizCur=null;
     document.getElementById('quizBox').classList.remove('show');
     fpsHeading=Math.atan2(player.aimy,player.aimx); camRot=-fpsHeading-Math.PI/2;
-    timeLeft=ROUND; timerEl.textContent=ROUND; timerEl.classList.remove('warn');
+    killCount={1:0,2:0};
+    const roundLen = selectedMode==='knockout' ? KO_TIME_LIMIT : ROUND;
+    timeLeft=roundLen; timerEl.textContent=roundLen; timerEl.classList.remove('warn');
     allChars.forEach(c=>splat(c.x,c.y,c.team,20));
   }
   // ---- BGM（30秒ループ・スタートごとに2曲を交互再生）----
@@ -1066,16 +1091,24 @@
   }
 
   function endGame(){
+    if(state==='result') return;   // 同一フレーム内での二重呼び出しを防ぐ
     stopBGM();
     pauseBtn.classList.remove('show');
     state='result'; const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
-    const win=op>bp, draw=op===bp;
+    let win, draw, scoreLine;
+    if(selectedMode==='knockout'){
+      win = killCount[1]>killCount[2]; draw = killCount[1]===killCount[2];
+      scoreLine = '<div class="result-pct"><span class="o">オレンジ '+killCount[1]+'キル</span><span class="b">ブルー '+killCount[2]+'キル</span></div>';
+    } else {
+      win = op>bp; draw = op===bp;
+      scoreLine = '<div class="result-pct"><span class="o">オレンジ '+op+'%</span><span class="b">ブルー '+bp+'%</span></div>';
+    }
     const quizLine = quizTotal>0
       ? '⚡ クイズ せいかい <b>'+quizCorrect+'</b>／'+quizTotal+'問'+(quizCorrect===quizTotal?'　パーフェクト！🎉':(quizCorrect/quizTotal>=0.7?'　すごい！':''))
       : '⚡ つぎは ボムボタンで クイズに ちょうせんしよう！';
     overlay.innerHTML=
       '<div class="title-big">'+(draw?'ひきわけ！':(win?'<span class="o">オレンジ</span>WIN!':'<span class="b">ブルー</span>WIN…'))+'</div>'+
-      '<div class="result-pct"><span class="o">オレンジ '+op+'%</span><span class="b">ブルー '+bp+'%</span></div>'+
+      scoreLine+
       '<div class="result-quiz">'+quizLine+'</div>'+
       '<div class="desc">'+(win?'ナイスターフ！チームでフィールドを制圧した！':(draw?'まさかの互角！もう一本！':'おしい！ボムを溜めて一気に塗り返そう。'))+'</div>'+
       '<button class="btn" id="againBtn">もう一度あそぶ</button>'+
@@ -1097,6 +1130,12 @@
   });
 
   // ---- メニューのボタン（キャラ→ブキの2ステップ）をバインド（メニュー復元時に再呼び出し）----
+  function updateModeSub(){
+    const el=document.getElementById('modeSub'); if(!el) return;
+    el.textContent = selectedMode==='knockout'
+      ? 'ターフウォー｜2対2の せんとりウォーズ・3キル先取'
+      : 'ターフウォー｜2対2の塗り合戦・60秒';
+  }
   function gotoStep(n){   // 1=キャラ, 2=ブキ, 3=ステージ
     const sc=document.getElementById('stepChar'), sw=document.getElementById('stepWeapon'), ss=document.getElementById('stepStage');
     const d1=document.getElementById('dot1'), d2=document.getElementById('dot2'), d3=document.getElementById('dot3');
@@ -1132,6 +1171,17 @@
       const flip=e=>{ e&&e.preventDefault(); bombRushItemEnabled=!bombRushItemEnabled; sw.classList.toggle('on', bombRushItemEnabled); };
       tog.onclick=flip; tog.ontouchstart=flip;
     }
+    // ルール選択カード
+    document.querySelectorAll('#modeGrid .pick-card').forEach(card => {
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#modeGrid .pick-card').forEach(c=>c.classList.remove('active'));
+        card.classList.add('active'); selectedMode = card.dataset.mode; updateModeSub();
+      };
+      card.addEventListener('click', pick);
+      card.addEventListener('touchstart', pick, {passive:false});
+      card.classList.toggle('active', card.dataset.mode===selectedMode);
+    });
+    updateModeSub();
     // ステージ選択カード
     document.querySelectorAll('#stageGrid .pick-card').forEach(card => {
       const pick=(e)=>{ if(e) e.preventDefault();
@@ -1605,9 +1655,18 @@
     gctx.moveTo(cx,cyc+4); gctx.lineTo(cx,cyc+15); gctx.stroke(); gctx.restore();
   }
 
-  function updateHUD(){ const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
-    document.getElementById('barO').style.width=(c.o*100)+'%'; document.getElementById('barB').style.width=(c.b*100)+'%';
-    document.getElementById('lblO').textContent=op+'%'; document.getElementById('lblB').textContent=bp+'%';
+  function updateHUD(){
+    if(selectedMode==='knockout'){
+      // せんとりウォーズ：バーは3キル到達までの進捗を表示
+      document.getElementById('barO').style.width=Math.min(100,killCount[1]/KO_TARGET*100)+'%';
+      document.getElementById('barB').style.width=Math.min(100,killCount[2]/KO_TARGET*100)+'%';
+      document.getElementById('lblO').textContent=killCount[1]+'／'+KO_TARGET+'キル';
+      document.getElementById('lblB').textContent=killCount[2]+'／'+KO_TARGET+'キル';
+    } else {
+      const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
+      document.getElementById('barO').style.width=(c.o*100)+'%'; document.getElementById('barB').style.width=(c.b*100)+'%';
+      document.getElementById('lblO').textContent=op+'%'; document.getElementById('lblB').textContent=bp+'%';
+    }
     if(player) {
       document.getElementById('inkFill').style.width=(player.ink/player.maxInk*100)+'%';
       document.getElementById('activeWeapon').textContent = WEAPONS[player.weapon].name + (player.weapon === 'handgun' ? 'モード' : (player.weapon === 'rifle' ? 'モード' : ''));
