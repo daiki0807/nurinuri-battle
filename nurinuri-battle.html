@@ -35,6 +35,10 @@
     border:3px solid #000;box-shadow:0 4px 0 #000;}
   .timer.warn{color:var(--yellow);animation:pulse .5s infinite alternate;}
   @keyframes pulse{to{transform:scale(1.08);}}
+  .lives{display:none;align-items:center;gap:2px;font-size:17px;line-height:1;letter-spacing:1px;
+    filter:drop-shadow(1px 1px 0 #000);}
+  .lives.show{display:flex;}
+  .lives .lost{filter:grayscale(1) opacity(.5);}
 
   .bar-wrap{position:relative;height:28px;border-radius:16px;overflow:hidden;border:3px solid #000;box-shadow:0 4px 0 #000;background:#222;}
   .bar-o,.bar-b{position:absolute;top:0;height:100%;transition:width .12s ease;}
@@ -71,8 +75,41 @@
   .result-quiz{font-family:"Dela Gothic One",cursive;font-size:13px;color:#161616;background:var(--yellow);
     padding:6px 16px;border-radius:999px;border:2px solid #000;box-shadow:0 3px 0 #000;margin-top:2px;}
   .result-quiz b{font-size:17px;}
+  /* リザルトの盛り上げ演出 */
+  .result-pop{animation:respop .55s both;}
+  @keyframes respop{0%{transform:scale(.3) rotate(-3deg);opacity:0;}55%{transform:scale(1.18) rotate(-3deg);}100%{transform:scale(1) rotate(-3deg);opacity:1;}}
+  .result-score{font-family:"Dela Gothic One",cursive;font-size:58px;color:var(--yellow);text-shadow:3px 4px 0 #000;
+    line-height:1;animation:respop .5s .1s both;}
+  .result-score .rs-unit{font-size:26px;margin-left:2px;}
+  .result-stars{font-size:40px;color:#ffd84d;letter-spacing:6px;text-shadow:2px 2px 0 #000;animation:starpop .5s .25s both;}
+  @keyframes starpop{0%{transform:scale(0);}60%{transform:scale(1.35);}100%{transform:scale(1);}}
+  .confetti{position:absolute;top:-16px;width:9px;height:15px;border-radius:2px;z-index:1;pointer-events:none;
+    animation:conffall linear forwards;}
+  @keyframes conffall{to{transform:translateY(820px) rotate(var(--rot,360deg));opacity:.9;}}
+  /* モード・難易度のセグメント選択 */
+  .seg-row{display:flex;align-items:center;gap:8px;width:min(100%,360px);}
+  .seg-label{font-family:"Dela Gothic One",cursive;font-size:11px;color:var(--yellow);text-shadow:1px 1px 0 #000;
+    flex:none;width:66px;text-align:left;}
+  .seg{display:flex;gap:4px;flex:1;}
+  .seg.dim{opacity:.4;pointer-events:none;}
+  .seg-btn{flex:1;font-family:"Dela Gothic One",cursive;font-size:11px;color:#cfcfe0;background:rgba(255,255,255,.05);
+    border:2px solid #000;border-radius:10px;padding:6px 2px;box-shadow:0 2px 0 #000;cursor:pointer;}
+  .seg-btn.active{background:linear-gradient(135deg,rgba(255,106,0,.28),rgba(255,230,0,.28));border-color:var(--yellow);color:#fff;}
   #goText{font-family:"Dela Gothic One",cursive;font-size:60px;color:var(--yellow);text-shadow:4px 4px 0 #000;
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:11;pointer-events:none;opacity:0;}
+  /* ---- おたすけアイテム取得中の表示 ---- */
+  #buffBar{position:absolute;top:40px;left:8px;display:flex;gap:6px;z-index:10;pointer-events:none;}
+  .buff-chip{display:flex;align-items:center;gap:3px;background:rgba(0,0,0,.55);border:2px solid #fff;border-radius:20px;
+    padding:2px 8px 2px 5px;font-family:"Dela Gothic One",cursive;font-size:12px;color:#fff;text-shadow:1px 1px 0 #000;
+    animation:buffpop .25s ease-out;}
+  .buff-chip .bc-ic{font-size:15px;}
+  .buff-chip .bc-t{font-size:11px;min-width:14px;text-align:center;}
+  @keyframes buffpop{from{transform:scale(.4);opacity:0;}to{transform:scale(1);opacity:1;}}
+  /* おたすけアイテムの一覧（メニュー） */
+  .item-lineup{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;width:min(100%,360px);margin-top:2px;}
+  .item-lineup .il-chip{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border:2px solid #000;
+    border-radius:20px;padding:3px 9px;font-size:10px;color:#e8e8f0;box-shadow:0 2px 0 #000;}
+  .item-lineup .il-ic{font-size:14px;}
 
   /* ---- クイズボム ---- */
   #quizBox{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:12;
@@ -125,6 +162,30 @@
   #bomb:not(.ready) .core{background:#5e5e6c;color:#c4c6d0;}
   #bomb.ready{animation:bombpulse .6s infinite alternate;}
   @keyframes bombpulse{to{box-shadow:0 5px 0 #000,0 0 14px rgba(255,230,0,.8);}}
+  /* ---- スペシャル ---- */
+  .sp-label{font-family:"Dela Gothic One",cursive;font-size:11px;color:#161616;background:var(--yellow);
+    border:2px solid #000;border-radius:8px;padding:3px 7px;box-shadow:0 2px 0 #000;flex:none;}
+  .special-btn{flex:none;width:48px;height:48px;border-radius:50%;border:3px solid #000;padding:0;cursor:pointer;
+    box-shadow:0 3px 0 #000;background:conic-gradient(#ffd84d 0deg, rgba(255,255,255,.12) 0deg);position:relative;
+    display:flex;align-items:center;justify-content:center;touch-action:none;transition:transform .06s;}
+  .special-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #000;}
+  .special-btn .sp-core{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:19px;background:#2a2a3a;}
+  .special-btn:not(.ready) .sp-core{filter:grayscale(1) brightness(.65);}
+  .special-btn.ready{animation:sppulse .55s infinite alternate;}
+  .special-btn.ready .sp-core{background:radial-gradient(circle at 35% 30%,#fff,#ffd84d);}
+  @keyframes sppulse{to{box-shadow:0 3px 0 #000,0 0 18px rgba(255,216,77,.95);}}
+  #spReady{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:11;pointer-events:none;
+    font-family:"Dela Gothic One",cursive;font-size:18px;color:#161616;background:var(--yellow);border:3px solid #000;
+    border-radius:999px;padding:5px 18px;box-shadow:0 3px 0 #000;opacity:0;transition:opacity .25s;white-space:nowrap;}
+  #spReady.show{opacity:1;}
+  #bossIntro{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);z-index:11;pointer-events:none;
+    font-family:"Dela Gothic One",cursive;font-size:26px;color:#fff;text-shadow:3px 3px 0 #000,0 0 18px #c41f1f;
+    background:rgba(140,20,40,.55);border:3px solid #000;border-radius:16px;padding:8px 22px;white-space:nowrap;
+    opacity:0;transition:opacity .2s,transform .2s;}
+  #bossIntro.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  .sp-thumb{width:100%;height:96px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:48px;background:#0e1626;border:2px solid var(--c,#888);box-shadow:inset 0 0 22px rgba(255,255,255,.04);}
   .tip{text-align:center;font-size:10.5px;color:#7a7a90;font-weight:700;line-height:1.5;}
 
   /* ブキ選択UI */
@@ -209,6 +270,7 @@
 <div id="app">
   <div class="topline">
     <div class="logo">ぬりぬりバトル</div>
+    <div class="lives" id="lives"></div>
     <div class="timer" id="timer">60</div>
   </div>
   <div class="bar-wrap">
@@ -223,6 +285,9 @@
     <canvas id="game"></canvas>
     <button id="viewBtn" class="view-btn">3人称</button>
     <button id="pauseBtn" class="view-btn pause-btn">‖ ポーズ</button>
+    <div id="buffBar"></div>
+    <div id="spReady">⭐ スペシャル準備OK！</div>
+    <div id="bossIntro"></div>
     <div id="goText">GO!</div>
     <div id="quizBox">
       <div class="quiz-card">
@@ -239,6 +304,7 @@
         左で移動、右でねらって<b>インク発射</b>！<br>
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
         <b>ボムは自分の陣地に乗るとチャージ</b>。満タンでボタンを押すと<b>⚡九九クイズ</b>！正解すると<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
+        塗るほど<b>⭐スペシャルゲージ</b>がたまり、満タンで<b>SPボタン（PCはEキー）</b>を押すと必殺技が発動！<br>
         左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
       </div>
       <div class="status-preview" id="statusPreview">
@@ -252,7 +318,7 @@
           <span class="status-caption" id="statusCaption">ガール｜ハンドガン</span>
         </div>
       </div>
-      <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span><span class="dot" id="dot3"></span></div>
+      <div class="step-dots"><span class="dot on" id="dot1"></span><span class="dot" id="dot2"></span><span class="dot" id="dot3"></span><span class="dot" id="dot4"></span></div>
 
       <!-- STEP 1：キャラクター選択 -->
       <div class="select-step show" id="stepChar">
@@ -325,38 +391,53 @@
         </div>
         <div class="item-toggle" id="bombRushToggle">
           <div class="it-info">
-            <span class="it-icon">∞</span>
+            <span class="it-icon">🎁</span>
             <div class="it-text">
-              <div class="it-name">ボムラッシュアイテム</div>
-              <div class="it-desc">拾うと5秒間ボム投げ放題</div>
+              <div class="it-name">おたすけアイテム</div>
+              <div class="it-desc">バトル中にアイテムが出現！拾うとパワーアップ</div>
             </div>
           </div>
           <span class="switch on" id="bombRushSwitch"><span class="knob"></span></span>
         </div>
+        <div class="item-lineup" id="itemLineup"></div>
         <div class="step-btns">
           <button class="btn small ghost" id="backToCharBtn">◀ もどる</button>
+          <button class="btn small" id="toSpecialBtn">つぎへ ▶</button>
+        </div>
+      </div>
+
+      <!-- STEP 3：スペシャル選択 -->
+      <div class="select-step" id="stepSpecial">
+        <div class="weapon-select-title">③ スペシャルを選択</div>
+        <div class="pick-grid" id="specialGrid">
+          <div class="pick-card active" data-special="megapaint">
+            <span class="p-check">✓</span>
+            <div class="sp-thumb" style="--c:#ff3da6">💥</div>
+            <div class="p-name">メガペイント</div>
+            <div class="p-desc">まわりを一気にドカンと広く塗る</div>
+          </div>
+          <div class="pick-card" data-special="inkshower">
+            <span class="p-check">✓</span>
+            <div class="sp-thumb" style="--c:#36d1ff">🌧️</div>
+            <div class="p-name">インクシャワー</div>
+            <div class="p-desc">インクの雨がふって広い範囲を塗る</div>
+          </div>
+          <div class="pick-card" data-special="barrier">
+            <span class="p-check">✓</span>
+            <div class="sp-thumb" style="--c:#ffe600">🛡️</div>
+            <div class="p-name">バリア</div>
+            <div class="p-desc">数秒間むてきになって暴れられる</div>
+          </div>
+        </div>
+        <div class="step-btns">
+          <button class="btn small ghost" id="backToWeaponBtn">◀ もどる</button>
           <button class="btn small" id="toStageBtn">つぎへ ▶</button>
         </div>
       </div>
 
-      <!-- STEP 3：ルール・ステージ選択 -->
+      <!-- STEP 4：ステージ・モード選択 -->
       <div class="select-step" id="stepStage">
-        <div class="weapon-select-title">③ ルールを選択</div>
-        <div class="pick-grid" id="modeGrid">
-          <div class="pick-card active" data-mode="coverage">
-            <span class="p-check">✓</span>
-            <div class="w-icon">⏱️</div>
-            <div class="p-name">ぬり合戦</div>
-            <div class="p-desc">60秒でどれだけ塗れるかを競う</div>
-          </div>
-          <div class="pick-card" data-mode="knockout">
-            <span class="p-check">✓</span>
-            <div class="w-icon">💥</div>
-            <div class="p-name">せんとりウォーズ</div>
-            <div class="p-desc">先に3キルしたチームの勝ち</div>
-          </div>
-        </div>
-        <div class="weapon-select-title">④ ステージを選択</div>
+        <div class="weapon-select-title">④ ステージ・モードを選択</div>
         <div class="pick-grid" id="stageGrid">
           <div class="pick-card active" data-stage="normal">
             <span class="p-check">✓</span>
@@ -371,8 +452,25 @@
             <div class="p-desc">広大なフィールド。カメラが自分を追う</div>
           </div>
         </div>
+        <div class="seg-row">
+          <span class="seg-label">モード</span>
+          <div class="seg" id="modeSeg">
+            <button class="seg-btn active" data-mode="turf">ナワバリ</button>
+            <button class="seg-btn" data-mode="boss">ボスせん</button>
+            <button class="seg-btn" data-mode="score">スコア</button>
+            <button class="seg-btn" data-mode="knockout">せんとり</button>
+          </div>
+        </div>
+        <div class="seg-row">
+          <span class="seg-label">むずかしさ</span>
+          <div class="seg" id="diffSeg">
+            <button class="seg-btn" data-diff="easy">やさしい</button>
+            <button class="seg-btn active" data-diff="normal">ふつう</button>
+            <button class="seg-btn" data-diff="hard">つよい</button>
+          </div>
+        </div>
         <div class="step-btns">
-          <button class="btn small ghost" id="backToWeaponBtn">◀ もどる</button>
+          <button class="btn small ghost" id="backToSpecialBtn">◀ もどる</button>
           <button class="btn" id="startBtn">スタート</button>
         </div>
       </div>
@@ -383,6 +481,8 @@
     <img id="hudChar" class="hud-char" alt="">
     <div class="active-weapon" id="activeWeapon">ハンドガン</div>
     <div class="gauge"><div class="gauge-fill" id="inkFill"></div><span class="gauge-txt">INK</span></div>
+    <span class="sp-label">SP</span>
+    <button id="special" class="special-btn" title="スペシャル"><span class="sp-core" id="spCore">⭐</span></button>
   </div>
 
   <div class="controls">
@@ -445,8 +545,7 @@
       spawns:{ player:{x:500,y:930}, ally:{x:230,y:930}, e1:{x:500,y:70}, e2:{x:780,y:70} } }
   };
   let selectedStage='normal';
-  let selectedMode='coverage';   // 'coverage'=ぬり合戦（時間制）／'knockout'=せんとりウォーズ（3キル先取）
-  const KO_TARGET=3, KO_TIME_LIMIT=120;
+  const KO_TARGET=3;   // せんとりウォーズ：先取キル数
   let killCount={1:0,2:0};
   function setStage(key){
     const s=STAGES[key]||STAGES.normal;
@@ -511,7 +610,7 @@
   // ---- エンティティ ----
   const WEAPONS = {
     handgun: { name: 'ハンドガン', fireCd: 0.10, inkCost: 1.4, speed: 535, range: 225, spread: 0.08, damage: 18, splatHit: 11, splatWall: 15, pellets: 1 },
-    shotgun: { name: 'ショットガン', fireCd: 0.55, inkCost: 8.5, speed: 460, range: 135, spread: 0.32, damage: 22, splatHit: 9, splatWall: 13, pellets: 5 },
+    shotgun: { name: 'ショットガン', fireCd: 0.55, inkCost: 8.5, speed: 460, range: 135, spread: 0.32, damage: 28, splatHit: 9, splatWall: 13, pellets: 5 },
     rifle: { name: 'ライフル', fireCd: 0.85, inkCost: 12.0, speed: 850, range: 410, spread: 0.0, damage: 70, splatHit: 18, splatWall: 24, pellets: 1 },
     // ローラー：射程は短いが威力大。移動するだけで足元を太く塗る。
     roller: { name: 'ローラー', fireCd: 0.55, inkCost: 6, speed: 330, range: 95, spread: 0.18, damage: 62, splatHit: 30, splatWall: 16, pellets: 3, isRoller: true, rollPaint: 18, rollInk: 14 },
@@ -526,14 +625,38 @@
   const BOT_WEAPONS = ['handgun', 'shotgun', 'rifle', 'roller', 'spinner', 'slosher', 'dual'];
   // 弾の描画サイズ（ブキ別）
   const SHOT_R = { handgun:4.5, shotgun:3.2, rifle:6.5, roller:5.5, spinner:3.4, slosher:5.5, dual:4.0 };
+
+  // ---- 難易度（CPUの強さ）----
+  // cd:発射間隔の倍率(大きいほど遅い) / spread:狙いのブレ倍率(大きいほど不正確) / speed:移動速度倍率 / sense:敵を狙い始める距離
+  const DIFFICULTIES = {
+    easy:   { name:'やさしい', cd:2.4, spread:2.6, speed:0.82, sense:200 },
+    normal: { name:'ふつう',   cd:1.5, spread:1.6, speed:1.0,  sense:270 },
+    hard:   { name:'つよい',   cd:0.9, spread:0.95,speed:1.18, sense:340 },
+  };
+  let difficulty='normal';
+  const DIFF = () => DIFFICULTIES[difficulty] || DIFFICULTIES.normal;
+
+  // ---- ゲームモード ----
+  const MODES = {
+    turf:     { name:'ナワバリ', round:60 },
+    boss:     { name:'ボスせん', round:90 },
+    score:    { name:'スコアアタック', round:60 },
+    knockout: { name:'せんとりウォーズ', round:120 },
+  };
+  let gameMode='turf';
   function mkChar(x,y,team,isBot){
     return {x,y,px:x,py:y,team,r:11,baseX:x,baseY:y,isBot,
       hp:100,maxHp:100,ink:100,maxInk:100,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,spin:0,
       dodgeT:0,dodgeCd:0,dodgeX:0,dodgeY:0,
+      speedT:0,shieldT:0,rainbowT:0,
       aimx:0,aimy:isBot?1:-1, tx:x,ty:y,stuck:0,fireT:0,wob:Math.random()*9,
       weapon: isBot ? BOT_WEAPONS[Math.floor(Math.random()*BOT_WEAPONS.length)] : 'handgun'};
   }
   let player, bots=[], allChars=[], shots=[], bombs=[], bombFx=[], splats=[];
+  let boss=null, bossDefeated=false;
+  // プレイヤーのライフ：MAX_DEATHS 回やられたらゲームオーバー
+  const MAX_DEATHS=4;
+  let playerDeaths=0, playerGameOver=false;
 
   function moveChar(c,dx,dy){
     const pad=c.r;
@@ -546,7 +669,7 @@
   function fire(c,ax,ay){
     const w = WEAPONS[c.weapon] || WEAPONS.handgun;
     if(c.fireCd>0||c.ink<w.inkCost||!c.alive) return;
-    let cd = c.isBot ? w.fireCd * 1.5 : w.fireCd;
+    let cd = c.isBot ? w.fireCd * DIFF().cd : w.fireCd;   // CPUの発射間隔は難易度で変わる
     let spread = w.spread;
     if(w.isSpinner){
       // 回し続けるほど spin(0→1) が上がり、拡散が縮まり連射も速くなる
@@ -556,6 +679,7 @@
     }
     c.fireCd = cd;
     c.ink -= w.inkCost;
+    const paintMul = c.rainbowT>0 ? RAINBOW_PAINT_MUL : 1;   // にじいろインク：塗り範囲アップ
     const baseA=Math.atan2(ay,ax);
 
     for(let i=0; i<w.pellets; i++){
@@ -563,7 +687,7 @@
       if(w.pellets > 1) {
         a += (Math.random() * 2 - 1) * spread;
       } else {
-        a += (c.isBot ? spread * 1.6 : spread) * (Math.random() * 2 - 1);
+        a += (c.isBot ? spread * DIFF().spread : spread) * (Math.random() * 2 - 1);
       }
       const sp = w.speed * (0.9 + Math.random()*0.2);
       const maxD = w.range * (0.85 + Math.random()*0.3);
@@ -576,8 +700,8 @@
         dist: 0,
         maxD,
         damage: w.damage,
-        splatHit: w.splatHit,
-        splatWall: w.splatWall,
+        splatHit: w.splatHit*paintMul,
+        splatWall: w.splatWall*paintMul,
         flyOver: !!w.flyOver,
         weaponType: c.weapon
       });
@@ -585,19 +709,26 @@
   }
 
   function damage(c,amt){
-    if(!c.alive||c.inv>0) return;
+    if(!c.alive||c.inv>0||c.shieldT>0) return;   // バリア中はダメージを受けない
     c.hp-=amt; c.hitT=0;
     if(c.hp<=0) splatOut(c);
   }
   function splatOut(c){
+    if(c.isBoss){ bossDie(c); return; }          // ボスは復活せず、撃破でゲーム終了
     c.alive=false; c.respawn=1.8;
+    c.speedT=0; c.shieldT=0; c.rainbowT=0;       // やられたらパワーアップは消える
+    if(c===player) bombRush=0;
     const killerTeam=c.team===1?2:1;
     splat(c.x,c.y, killerTeam, 40);
     for(let k=0;k<8;k++){ splats.push({x:c.x,y:c.y,
       vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, life:0.5, team:c.team}); }
-    if(state==='play'){
+    if(c===player){
+      playerDeaths++;
+      if(playerDeaths>=MAX_DEATHS){ playerGameOver=true; endGame(); }   // 4回やられたらゲームオーバー
+    }
+    if(gameMode==='knockout'){
       killCount[killerTeam]=(killCount[killerTeam]||0)+1;
-      if(selectedMode==='knockout' && killCount[killerTeam]>=KO_TARGET) endGame();
+      if(killCount[killerTeam]>=KO_TARGET) endGame();
     }
   }
   function respawnChar(c){
@@ -693,33 +824,113 @@
     if(bombRush<=0){ bombGauge=0; bombArmed=false; }   // ラッシュ中はゲージを消費しない
   }
   function explodeBomb(b,x=b.tx,y=b.ty){
-    splat(x,y,b.team,80);
-    bombFx.push({x,y,r:0,max:150});
+    splat(x,y,b.team,b.splatR||80);          // アンコウのボムは特大インク
+    bombFx.push({x,y,r:0,max:b.splatR?200:150});
+    const dmg=b.dmg||BOMB_DAMAGE, rad=b.dmgR||BOMB_DAMAGE_RADIUS;
     for(const o of allChars){
       if(o.team===b.team || !o.alive) continue;
-      if(Math.hypot(o.x-x,o.y-y)<BOMB_DAMAGE_RADIUS+o.r) damage(o,BOMB_DAMAGE);
+      if(Math.hypot(o.x-x,o.y-y)<rad+o.r) damage(o,dmg);
     }
   }
 
-  // ---- アイテム（ボムラッシュ）----
-  let pickups=[], itemSpawnT=0, bombRushItemEnabled=true;
-  const ITEM_SPAWN_INTERVAL=20, ITEM_PICKUP_R=22;
-  function spawnBombRushItem(){
+  // ---- おたすけアイテム ----
+  // 種類ごとの見た目・効果。子ども向けに4種類をフィールドに落とす。
+  const SPEED_DURATION=8, SPEED_MUL=1.7;        // スピードアップ
+  const SHIELD_DURATION=6;                       // バリア（むてき）
+  const RAINBOW_DURATION=8, RAINBOW_PAINT_MUL=2.1; // にじいろインク（塗り範囲アップ）
+  const ITEMS={
+    bombRush:{name:'ボムラッシュ', desc:'5秒間ボム投げ放題', icon:'∞', color:'#ff9000'},
+    speed:   {name:'スピードアップ', desc:'8秒間すばやくなる', icon:'⚡', color:'#ffe600'},
+    shield:  {name:'バリア', desc:'6秒間むてきになる', icon:'🛡', color:'#36d1ff'},
+    rainbow: {name:'にじいろインク', desc:'8秒間ふとくぬれる', icon:'🌈', color:'#ff5fa2'},
+  };
+  const ITEM_KEYS=Object.keys(ITEMS);
+  let pickups=[], itemSpawnT=0, bombRushItemEnabled=true;  // bombRushItemEnabled＝おたすけアイテム全体のON/OFF
+  const ITEM_SPAWN_INTERVAL=10, ITEM_PICKUP_R=22, ITEM_MAX=2;
+  function spawnItem(){
     for(let k=0;k<50;k++){
       const x=70+Math.random()*(SIZE-140), y=70+Math.random()*(SIZE-140);
       if(inObstacle(x,y,20)) continue;
-      pickups.push({x,y,type:'bombRush',t:0});
+      const type=ITEM_KEYS[Math.floor(Math.random()*ITEM_KEYS.length)];
+      pickups.push({x,y,type,t:0});
       return;
     }
   }
+  // 拾ったキャラ（＝プレイヤー）に効果を付与
+  function applyItem(c,type){
+    if(type==='speed')   c.speedT=SPEED_DURATION;
+    else if(type==='shield')  c.shieldT=SHIELD_DURATION;
+    else if(type==='rainbow') c.rainbowT=RAINBOW_DURATION;
+    else if(type==='bombRush'){ bombRush=BOMB_RUSH_DURATION; bombGauge=1; }
+  }
   function updatePickups(dt){
-    if(!bombRushItemEnabled) return;   // メニューでオフのときは出現しない
-    // 場に1個も無いときだけ、間隔をおいて出現
-    if(pickups.length===0){ itemSpawnT-=dt; if(itemSpawnT<=0){ spawnBombRushItem(); itemSpawnT=ITEM_SPAWN_INTERVAL; } }
+    if(!bombRushItemEnabled){ pickups.length=0; return; }   // メニューでオフのときは出現しない
+    // 上限未満なら、間隔をおいて出現
+    if(pickups.length<ITEM_MAX){ itemSpawnT-=dt; if(itemSpawnT<=0){ spawnItem(); itemSpawnT=ITEM_SPAWN_INTERVAL; } }
     for(let i=pickups.length-1;i>=0;i--){ const it=pickups[i]; it.t+=dt;
+      // アイテムを拾えるのはプレイヤーだけ（CPUは取れない）
       if(player&&player.alive&&Math.hypot(player.x-it.x,player.y-it.y)<ITEM_PICKUP_R+player.r){
-        bombRush=BOMB_RUSH_DURATION; bombGauge=1; pickups.splice(i,1);
+        applyItem(player,it.type); pickups.splice(i,1);
       }
+    }
+  }
+
+  // ---- スペシャル（必殺技）----
+  const SPECIALS={
+    megapaint:{name:'メガペイント', desc:'まわりを一気にドカンと塗る', icon:'💥', color:'#ff3da6'},
+    inkshower:{name:'インクシャワー', desc:'インクの雨がふって広く塗る', icon:'🌧️', color:'#36d1ff'},
+    barrier:  {name:'バリア', desc:'数秒間むてきになって暴れる', icon:'🛡️', color:'#ffe600'},
+  };
+  let specialGauge=0;            // 0→1。塗るほどたまる
+  let specialReadyShown=false;   // 「準備OK」表示を出したか
+  const SPECIAL_FILL_RATE=1/13;  // 約13秒ぶんの塗りで満タン
+  const SPECIAL_BARRIER_DURATION=6;
+  const INKSHOWER_DURATION=4.5, INKSHOWER_RATE=0.035, INKSHOWER_DROP_R=15;
+  let inkShower={t:0, team:1};
+  let rainDrops=[], rainSpawnT=0;
+
+  function activateSpecial(){
+    if(state!=='play'||!player||!player.alive||specialGauge<1) return;
+    specialGauge=0;
+    const kind=player.special||'megapaint';
+    if(kind==='megapaint'){
+      // 自分のまわりを一気に塗り、衝撃で近くの敵をやっつける
+      splat(player.x,player.y,player.team,170);
+      for(let k=0;k<10;k++){ const a=Math.random()*Math.PI*2, d=60+Math.random()*120;
+        splat(player.x+Math.cos(a)*d, player.y+Math.sin(a)*d, player.team, 55); }
+      bombFx.push({x:player.x,y:player.y,r:0,max:240});
+      for(const o of allChars){ if(o.team!==player.team && o.alive && Math.hypot(o.x-player.x,o.y-player.y)<180) damage(o,120); }
+    } else if(kind==='inkshower'){
+      inkShower.t=INKSHOWER_DURATION; inkShower.team=player.team; rainSpawnT=0;
+    } else if(kind==='barrier'){
+      // バリア中はむてき＋すばやく動ける（おたすけアイテムの仕組みを再利用）
+      player.shieldT=Math.max(player.shieldT,SPECIAL_BARRIER_DURATION);
+      player.speedT=Math.max(player.speedT,SPECIAL_BARRIER_DURATION);
+    }
+  }
+  function updateSpecial(dt){
+    if(inkShower.t>0){
+      inkShower.t=Math.max(0,inkShower.t-dt);
+      rainSpawnT-=dt;
+      while(rainSpawnT<=0){ rainSpawnT+=INKSHOWER_RATE;
+        const x=20+Math.random()*(SIZE-40), y=20+Math.random()*(SIZE-40);
+        rainDrops.push({x,y,fall:0,team:inkShower.team});
+      }
+    }
+    for(let i=rainDrops.length-1;i>=0;i--){ const d=rainDrops[i]; d.fall+=dt*3.2;
+      if(d.fall>=1){   // 着地：その場を塗り、真下にいる敵に小ダメージ
+        splat(d.x,d.y,d.team,INKSHOWER_DROP_R);
+        for(const o of allChars){ if(o.team!==d.team && o.alive && Math.hypot(o.x-d.x,o.y-d.y)<INKSHOWER_DROP_R+o.r) damage(o,6); }
+        rainDrops.splice(i,1);
+      }
+    }
+  }
+  function drawRain(){   // 上から落ちてくるインクの線（見下ろし視点）
+    for(const d of rainDrops){ const h=42*(1-d.fall);
+      gctx.strokeStyle=COLOR[d.team]; gctx.globalAlpha=0.85; gctx.lineWidth=3;
+      gctx.beginPath(); gctx.moveTo(d.x,d.y-h-10); gctx.lineTo(d.x,d.y-10); gctx.stroke();
+      gctx.globalAlpha=1; gctx.fillStyle=COLOR[d.team];
+      gctx.beginPath(); gctx.arc(d.x,d.y-10,3,0,Math.PI*2); gctx.fill();
     }
   }
 
@@ -823,6 +1034,7 @@
       return;
     }
     if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) bombPress(); return; }
+    if(e.key==='e'||e.key==='E'){ e.preventDefault(); if(!e.repeat) activateSpecial(); return; }
     keys[e.key.toLowerCase()]=true;
   });
   window.addEventListener('keyup',e=>{
@@ -935,6 +1147,13 @@
   bombBtn.addEventListener('touchcancel',e=>{bombRelease();});
   bombBtn.addEventListener('mousedown',e=>{e.preventDefault();bombPress();});
 
+  // スペシャルボタン
+  const specialBtn=document.getElementById('special'), spCore=document.getElementById('spCore');
+  if(specialBtn){
+    specialBtn.addEventListener('touchstart',e=>{e.preventDefault();activateSpecial();},{passive:false});
+    specialBtn.addEventListener('mousedown',e=>{e.preventDefault();activateSpecial();});
+  }
+
   const viewBtn=document.getElementById('viewBtn');
   function toggleView(){
     viewIdx=(viewIdx+1)%VIEW_ORDER.length; viewMode=VIEW_ORDER[viewIdx];
@@ -951,30 +1170,46 @@
   // メニュー画面のHTMLを保存しておき、いつでも復元できるようにする
   const MENU_HTML=overlay.innerHTML;
 
-  let selectedWeapon = 'handgun', selectedChar = 'girl';
+  let selectedWeapon = 'handgun', selectedChar = 'girl', selectedSpecial = 'megapaint';
+  let selectedMode = 'turf', selectedDifficulty = 'normal';
 
   function resetGame(){
+    gameMode=selectedMode; difficulty=selectedDifficulty;   // メニューの選択を反映
+    boss=null; bossDefeated=false; bossStage=0; playerDeaths=0; playerGameOver=false;
     setStage(selectedStage); ictx.clearRect(0,0,SIZE,SIZE);
     const sp=(STAGES[selectedStage]||STAGES.normal).spawns;
     shots=[]; bombs=[]; bombFx=[]; splats=[]; pickups=[]; itemSpawnT=8; bombRush=0;
+    { const bb=document.getElementById('buffBar'); if(bb) bb.innerHTML=''; buffSig=''; }
     player=mkChar(sp.player.x,sp.player.y,1,false);
     player.weapon = selectedWeapon;
     player.char = selectedChar;
-    bots=[
-      mkChar(sp.ally.x,sp.ally.y,1,true),   // 味方CPU
-      mkChar(sp.e1.x,  sp.e1.y,  2,true),   // 敵CPU
-      mkChar(sp.e2.x,  sp.e2.y,  2,true),   // 敵CPU
-    ];
+    player.special = selectedSpecial;
+    specialGauge=0; specialReadyShown=false; inkShower.t=0; rainDrops=[]; rainSpawnT=0;
+    { const sr=document.getElementById('spReady'); if(sr) sr.classList.remove('show'); }
+    if(gameMode==='score'){
+      bots=[];                                  // スコアアタック：敵なし、ひたすら塗る
+    } else if(gameMode==='boss'){
+      bossStage=0; boss=mkBoss(BOSS_TYPES[0]);
+      bots=[ mkChar(sp.ally.x,sp.ally.y,1,true), boss ];   // 味方CPU＋ボス
+      showBossIntro(BOSS_TYPES[0]);
+    } else {
+      bots=[
+        mkChar(sp.ally.x,sp.ally.y,1,true),   // 味方CPU
+        mkChar(sp.e1.x,  sp.e1.y,  2,true),   // 敵CPU
+        mkChar(sp.e2.x,  sp.e2.y,  2,true),   // 敵CPU
+      ];
+    }
     allChars=[player,...bots];
     allChars.forEach(declip);        // 念のため障害物から押し出す
-    bots.forEach(pickTarget);
+    bots.forEach(b=>{ if(!b.isBoss) pickTarget(b); });
     bombGauge=0; throwing=false; throwPower=0;
     bombArmed=false; quizCorrect=0; quizTotal=0; quizCur=null;
     document.getElementById('quizBox').classList.remove('show');
     fpsHeading=Math.atan2(player.aimy,player.aimx); camRot=-fpsHeading-Math.PI/2;
     killCount={1:0,2:0};
-    const roundLen = selectedMode==='knockout' ? KO_TIME_LIMIT : ROUND;
-    timeLeft=roundLen; timerEl.textContent=roundLen; timerEl.classList.remove('warn');
+    let round=(MODES[gameMode]||MODES.turf).round;
+    if(gameMode==='boss' && difficulty==='hard') round=50;   // ボス×つよいは制限時間50秒
+    timeLeft=round; timerEl.textContent=round; timerEl.classList.remove('warn');
     allChars.forEach(c=>splat(c.x,c.y,c.team,20));
   }
   // ---- BGM（30秒ループ・スタートごとに2曲を交互再生）----
@@ -1090,32 +1325,72 @@
     state='play';
   }
 
+  // お祝いの紙吹雪（勝ち・好スコアのときに降らせる）
+  function spawnConfetti(container, n=64){
+    const colors=['#ff6a00','#12b8ff','#ffe600','#ff3da6','#36d1ff','#3ad17a','#fff'];
+    for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='confetti';
+      d.style.left=Math.random()*100+'%';
+      d.style.background=colors[i%colors.length];
+      d.style.animationDelay=(Math.random()*0.9)+'s';
+      d.style.animationDuration=(1.7+Math.random()*1.6)+'s';
+      d.style.setProperty('--rot',(Math.random()*720-360)+'deg');
+      container.appendChild(d);
+    }
+  }
   function endGame(){
     if(state==='result') return;   // 同一フレーム内での二重呼び出しを防ぐ
     stopBGM();
     pauseBtn.classList.remove('show');
-    state='result'; const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
-    let win, draw, scoreLine;
-    if(selectedMode==='knockout'){
-      win = killCount[1]>killCount[2]; draw = killCount[1]===killCount[2];
-      scoreLine = '<div class="result-pct"><span class="o">オレンジ '+killCount[1]+'キル</span><span class="b">ブルー '+killCount[2]+'キル</span></div>';
+    state='result';
+    const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
+    let titleHtml, descHtml, extra='', win=false;
+    if(playerGameOver){
+      // 4回やられてゲームオーバー（勝敗より優先）
+      titleHtml = '💀 ゲームオーバー…';
+      extra = '<div class="result-pct"><span class="b">4回 やられてしまった</span></div>';
+      descHtml = gameMode==='boss'
+        ? 'おしい！ボスの攻撃をかわしながら、もう一回ちょうせん！'
+        : '4回やられてしまった…つぎは敵インクに気をつけよう！';
+    } else if(gameMode==='boss'){
+      win=bossDefeated;
+      titleHtml = win ? '🏆 <span class="o">ボスをたおした！</span>' : 'ボスにげられた…';
+      extra = '<div class="result-pct"><span class="o">フィールドを '+op+'% ぬった</span></div>';
+      descHtml = win ? 'やったね！みんなでボスをやっつけた！' : 'おしい！ボスにもっとインクをぶつけよう。';
+    } else if(gameMode==='score'){
+      const stars = op>=60?3:(op>=40?2:(op>=20?1:0));
+      win = stars>=2;
+      titleHtml = 'スコアアタック けっか';
+      extra = '<div class="result-score">'+op+'<span class="rs-unit">%</span></div>'+
+              '<div class="result-stars">'+'★'.repeat(stars)+'☆'.repeat(3-stars)+'</div>';
+      descHtml = stars===3 ? 'パーフェクト級！ぬりまくった！🎉'
+               : (stars>=1 ? 'いいぬりっぷり！もっと上をめざそう！' : 'つぎはもっとたくさん塗ってみよう！');
+    } else if(gameMode==='knockout'){
+      const draw=killCount[1]===killCount[2]; win=killCount[1]>killCount[2];
+      titleHtml = draw ? 'ひきわけ！' : (win ? '🏆 <span class="o">オレンジ</span>WIN!' : '<span class="b">ブルー</span>WIN…');
+      extra = '<div class="result-pct"><span class="o">オレンジ '+killCount[1]+'キル</span><span class="b">ブルー '+killCount[2]+'キル</span></div>';
+      descHtml = win ? 'みごと3キル先取！チームプレイの勝ち！'
+               : (draw ? 'まさかの互角！もう一本！' : 'おしい！つぎはもっと積極的に敵をたおそう。');
     } else {
-      win = op>bp; draw = op===bp;
-      scoreLine = '<div class="result-pct"><span class="o">オレンジ '+op+'%</span><span class="b">ブルー '+bp+'%</span></div>';
+      const draw=op===bp; win=op>bp;
+      titleHtml = draw ? 'ひきわけ！' : (win ? '🏆 <span class="o">オレンジ</span>WIN!' : '<span class="b">ブルー</span>WIN…');
+      extra = '<div class="result-pct"><span class="o">オレンジ '+op+'%</span><span class="b">ブルー '+bp+'%</span></div>';
+      descHtml = win ? 'ナイスターフ！チームでフィールドを制圧した！'
+               : (draw ? 'まさかの互角！もう一本！' : 'おしい！ボムを溜めて一気に塗り返そう。');
     }
     const quizLine = quizTotal>0
       ? '⚡ クイズ せいかい <b>'+quizCorrect+'</b>／'+quizTotal+'問'+(quizCorrect===quizTotal?'　パーフェクト！🎉':(quizCorrect/quizTotal>=0.7?'　すごい！':''))
       : '⚡ つぎは ボムボタンで クイズに ちょうせんしよう！';
     overlay.innerHTML=
-      '<div class="title-big">'+(draw?'ひきわけ！':(win?'<span class="o">オレンジ</span>WIN!':'<span class="b">ブルー</span>WIN…'))+'</div>'+
-      scoreLine+
+      '<div class="title-big result-pop">'+titleHtml+'</div>'+
+      extra+
       '<div class="result-quiz">'+quizLine+'</div>'+
-      '<div class="desc">'+(win?'ナイスターフ！チームでフィールドを制圧した！':(draw?'まさかの互角！もう一本！':'おしい！ボムを溜めて一気に塗り返そう。'))+'</div>'+
+      '<div class="desc">'+descHtml+'</div>'+
       '<button class="btn" id="againBtn">もう一度あそぶ</button>'+
       '<button class="btn ghost" id="toMenuBtn2">メニューへ</button>';
     overlay.classList.remove('hide');
     document.getElementById('againBtn').onclick=startCountdown;
     document.getElementById('toMenuBtn2').onclick=showMenu;
+    if(win) spawnConfetti(overlay);
   }
 
   // ポーズボタン
@@ -1136,12 +1411,10 @@
       ? 'ターフウォー｜2対2の せんとりウォーズ・3キル先取'
       : 'ターフウォー｜2対2の塗り合戦・60秒';
   }
-  function gotoStep(n){   // 1=キャラ, 2=ブキ, 3=ステージ
-    const sc=document.getElementById('stepChar'), sw=document.getElementById('stepWeapon'), ss=document.getElementById('stepStage');
-    const d1=document.getElementById('dot1'), d2=document.getElementById('dot2'), d3=document.getElementById('dot3');
-    if(!sc||!sw) return;
-    sc.classList.toggle('show', n===1); sw.classList.toggle('show', n===2); if(ss) ss.classList.toggle('show', n===3);
-    if(d1) d1.classList.toggle('on', n===1); if(d2) d2.classList.toggle('on', n===2); if(d3) d3.classList.toggle('on', n===3);
+  function gotoStep(n){   // 1=キャラ, 2=ブキ, 3=スペシャル, 4=ステージ
+    const steps={1:'stepChar',2:'stepWeapon',3:'stepSpecial',4:'stepStage'};
+    for(const k in steps){ const el=document.getElementById(steps[k]); if(el) el.classList.toggle('show', +k===n); }
+    for(let i=1;i<=4;i++){ const d=document.getElementById('dot'+i); if(d) d.classList.toggle('on', i===n); }
   }
   function bindMenu(){
     // キャラ選択カード
@@ -1164,24 +1437,27 @@
       card.addEventListener('touchstart', pick, {passive:false});
       card.classList.toggle('active', card.dataset.weapon===selectedWeapon);
     });
-    // ボムラッシュアイテムのオン／オフ
+    // スペシャル選択カード
+    document.querySelectorAll('#specialGrid .pick-card').forEach(card => {
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#specialGrid .pick-card').forEach(c=>c.classList.remove('active'));
+        card.classList.add('active'); selectedSpecial = card.dataset.special;
+      };
+      card.addEventListener('click', pick);
+      card.addEventListener('touchstart', pick, {passive:false});
+      card.classList.toggle('active', card.dataset.special===selectedSpecial);
+    });
+    // おたすけアイテムのオン／オフ
     const sw=document.getElementById('bombRushSwitch'), tog=document.getElementById('bombRushToggle');
     if(sw){
       sw.classList.toggle('on', bombRushItemEnabled);
       const flip=e=>{ e&&e.preventDefault(); bombRushItemEnabled=!bombRushItemEnabled; sw.classList.toggle('on', bombRushItemEnabled); };
       tog.onclick=flip; tog.ontouchstart=flip;
     }
-    // ルール選択カード
-    document.querySelectorAll('#modeGrid .pick-card').forEach(card => {
-      const pick=(e)=>{ if(e) e.preventDefault();
-        document.querySelectorAll('#modeGrid .pick-card').forEach(c=>c.classList.remove('active'));
-        card.classList.add('active'); selectedMode = card.dataset.mode; updateModeSub();
-      };
-      card.addEventListener('click', pick);
-      card.addEventListener('touchstart', pick, {passive:false});
-      card.classList.toggle('active', card.dataset.mode===selectedMode);
-    });
-    updateModeSub();
+    // おたすけアイテムの一覧を表示
+    const lineup=document.getElementById('itemLineup');
+    if(lineup){ lineup.innerHTML=ITEM_KEYS.map(k=>{ const d=ITEMS[k];
+      return '<span class="il-chip"><span class="il-ic">'+d.icon+'</span>'+d.name+'</span>'; }).join(''); }
     // ステージ選択カード
     document.querySelectorAll('#stageGrid .pick-card').forEach(card => {
       const pick=(e)=>{ if(e) e.preventDefault();
@@ -1192,13 +1468,33 @@
       card.addEventListener('touchstart', pick, {passive:false});
       card.classList.toggle('active', card.dataset.stage===selectedStage);
     });
-    // ステップ移動
-    const toW=document.getElementById('toWeaponBtn'), back=document.getElementById('backToCharBtn');
-    const toS=document.getElementById('toStageBtn'), back2=document.getElementById('backToWeaponBtn');
-    if(toW){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; toW.onclick=f; toW.ontouchstart=f; }
-    if(back){ const f=e=>{e&&e.preventDefault();gotoStep(1);}; back.onclick=f; back.ontouchstart=f; }
-    if(toS){ const f=e=>{e&&e.preventDefault();gotoStep(3);}; toS.onclick=f; toS.ontouchstart=f; }
-    if(back2){ const f=e=>{e&&e.preventDefault();gotoStep(2);}; back2.onclick=f; back2.ontouchstart=f; }
+    // モード選択
+    const diffSeg=document.getElementById('diffSeg');
+    function refreshDiffDim(){ if(diffSeg) diffSeg.classList.toggle('dim', selectedMode==='score'); }  // スコアは難易度関係なし
+    document.querySelectorAll('#modeSeg .seg-btn').forEach(btn=>{
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#modeSeg .seg-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active'); selectedMode=btn.dataset.mode; refreshDiffDim(); updateModeSub();
+      };
+      btn.onclick=pick; btn.ontouchstart=pick;
+      btn.classList.toggle('active', btn.dataset.mode===selectedMode);
+    });
+    updateModeSub();
+    // 難易度選択
+    document.querySelectorAll('#diffSeg .seg-btn').forEach(btn=>{
+      const pick=(e)=>{ if(e) e.preventDefault();
+        document.querySelectorAll('#diffSeg .seg-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active'); selectedDifficulty=btn.dataset.diff;
+      };
+      btn.onclick=pick; btn.ontouchstart=pick;
+      btn.classList.toggle('active', btn.dataset.diff===selectedDifficulty);
+    });
+    refreshDiffDim();
+    // ステップ移動（1:キャラ → 2:ブキ → 3:スペシャル → 4:ステージ）
+    const nav=[['toWeaponBtn',2],['backToCharBtn',1],['toSpecialBtn',3],['backToWeaponBtn',2],
+               ['toStageBtn',4],['backToSpecialBtn',3]];
+    nav.forEach(([id,step])=>{ const el=document.getElementById(id);
+      if(el){ const f=e=>{e&&e.preventDefault();gotoStep(step);}; el.onclick=f; el.ontouchstart=f; } });
     // スタート
     const sb=document.getElementById('startBtn');
     if(sb){ const f=e=>{e&&e.preventDefault();startCountdown();}; sb.onclick=f; sb.ontouchstart=f; }
@@ -1282,16 +1578,21 @@
       }
       if(player.dodgeT>0){ dodgeMul=2.7; dx=player.dodgeX; dy=player.dodgeY; }
     }
-    // ローラーはやや速く動ける
-    const speed=168*mult*(pw.isRoller?1.12:1)*dodgeMul*dt;
+    // ローラーはやや速く動ける／スピードアップ取得中はさらに速い
+    const speedBuff=player.speedT>0?SPEED_MUL:1;
+    const speed=168*mult*(pw.isRoller?1.12:1)*dodgeMul*speedBuff*dt;
+    const paintMul=player.rainbowT>0?RAINBOW_PAINT_MUL:1;   // にじいろインク：足元の塗りも太く
     player.px=player.x;player.py=player.y;
     moveChar(player,dx*speed,dy*speed);
     if(!player.swim && moving){
       if(pw.isRoller && player.ink>0.5){   // ローラー：移動で足元を太く塗りつぶす（インク消費）
-        paintCircle(player.x,player.y,player.team,pw.rollPaint);
+        paintCircle(player.x,player.y,player.team,pw.rollPaint*paintMul);
         player.ink=Math.max(0,player.ink-pw.rollInk*dt);
-      } else paintCircle(player.x,player.y,player.team,7);
+      } else paintCircle(player.x,player.y,player.team,7*paintMul);
     }
+    // スペシャルゲージ：塗っている（発射 or ローラー移動）ときにたまる
+    if(player.alive && (firing || (pw.isRoller && moving && !player.swim)))
+      specialGauge=Math.min(1, specialGauge + dt*SPECIAL_FILL_RATE);
     // スピナーの回転は撃たないと徐々に落ちる
     if(!firing) player.spin=Math.max(0,(player.spin||0)-dt*1.5);
 
@@ -1318,9 +1619,17 @@
     if(player.fireCd>0) player.fireCd-=dt;
     player.hitT+=dt; if(player.hitT>1.2&&player.hp<player.maxHp) player.hp=Math.min(player.maxHp,player.hp+22*dt);
     if(player.inv>0) player.inv-=dt;
+    decayBuffs(player,dt);
+  }
+  // おたすけアイテム効果の残り時間を減らす（全キャラ共通）
+  function decayBuffs(c,dt){
+    if(c.speedT>0)   c.speedT=Math.max(0,c.speedT-dt);
+    if(c.shieldT>0)  c.shieldT=Math.max(0,c.shieldT-dt);
+    if(c.rainbowT>0) c.rainbowT=Math.max(0,c.rainbowT-dt);
   }
 
   function updateBot(b,dt){
+    if(b.isBoss){ updateBoss(b,dt); return; }
     if(!b.alive){ b.respawn-=dt; if(b.respawn<=0) respawnChar(b); return; }
     let dx=b.tx-b.x,dy=b.ty-b.y; const d=Math.hypot(dx,dy)||1;
     if(d<22){ pickTarget(b); dx=b.tx-b.x; dy=b.ty-b.y; }
@@ -1329,24 +1638,121 @@
     let mult=1;
     if(own===b.team){ mult=1.32; b.ink=Math.min(b.maxInk,b.ink+44*dt); }
     else if(own!==0){ mult=0.7; } else { b.ink=Math.min(b.maxInk,b.ink+10*dt); }
-    const speed=150*mult*dt;
+    const speed=150*mult*(b.speedT>0?SPEED_MUL:1)*DIFF().speed*dt;
     b.px=b.x;b.py=b.y;
     moveChar(b,dx*speed,dy*speed);
     if(Math.hypot(b.x-b.px,b.y-b.py)<speed*0.3){ b.stuck+=dt; if(b.stuck>0.35) pickTarget(b);} else b.stuck=0;
     const bwp=WEAPONS[b.weapon]||WEAPONS.handgun;
-    paintCircle(b.x,b.y,b.team, bwp.isRoller?16:6);
+    const bPaintMul=b.rainbowT>0?RAINBOW_PAINT_MUL:1;
+    paintCircle(b.x,b.y,b.team, (bwp.isRoller?16:6)*bPaintMul);
 
     let nearest=null,nd=1e9;
-    for(const o of allChars){ if(o===b||o.team===b.team||!o.alive) continue;
+    for(const o of allChars){ if(o===b||o.team===b.team||!o.alive||o.isBoss) continue;
       const od=Math.hypot(o.x-b.x,o.y-b.y); if(od<nd){nd=od;nearest=o;} }
     let ax=dx,ay=dy;
-    if(nearest && nd<270){ ax=(nearest.x-b.x)/nd; ay=(nearest.y-b.y)/nd; }
+    if(nearest && nd<DIFF().sense){ ax=(nearest.x-b.x)/nd; ay=(nearest.y-b.y)/nd; }
     b.aimx=ax; b.aimy=ay;
     const bw = WEAPONS[b.weapon] || WEAPONS.handgun;
     if(b.ink >= bw.inkCost) fire(b,ax,ay);
     if(b.fireCd>0) b.fireCd-=dt;
     b.hitT+=dt; if(b.hitT>1.5&&b.hp<b.maxHp) b.hp=Math.min(b.maxHp,b.hp+18*dt);
     if(b.inv>0) b.inv-=dt;
+    decayBuffs(b,dt);
+  }
+
+  // ---- ボス戦（3種類を順番に：クラーケン→イカ→アンコウ）----
+  const BOSS_TYPES=['kraken','squid','angler'];
+  const BOSS_DEF={
+    kraken:{ name:'クラーケン', hp:{easy:1300,normal:1900,hard:2600}, r:34, speed:122, stop:120, cd:1.18, color:'#9333b8' },
+    squid: { name:'イカ',       hp:{easy:1200,normal:1700,hard:2300}, r:32, speed:130, stop:230, cd:1.05, color:'#3f7fe0' },
+    angler:{ name:'アンコウ',    hp:{easy:1500,normal:2200,hard:3000}, r:40, speed:72,  stop:150, cd:2.1,  color:'#5e6b4e' },
+  };
+  let bossStage=0;
+  function mkBoss(type){
+    const def=BOSS_DEF[type]||BOSS_DEF.kraken;
+    const hp=def.hp[difficulty]||def.hp.normal;
+    const x=SIZE/2, y=70;
+    return {x,y,px:x,py:y,team:2,r:def.r,baseX:x,baseY:y,isBot:true,isBoss:true,bossType:type,def,
+      hp,maxHp:hp,ink:9999,maxInk:9999,fireCd:0,alive:true,respawn:0,inv:0,hitT:0,swim:false,spin:0,
+      dodgeT:0,dodgeCd:0,dodgeX:0,dodgeY:0,speedT:0,shieldT:0,rainbowT:0,
+      aimx:0,aimy:1,tx:x,ty:y,stuck:0,fireT:0,wob:0,weapon:'handgun',bossCd:2.2};
+  }
+  function updateBoss(b,dt){
+    if(!b.alive) return;
+    const def=b.def;
+    // いちばん近いチーム1（プレイヤー／味方）へ接近
+    let target=null,nd=1e9;
+    for(const o of allChars){ if(o.team===b.team||!o.alive) continue;
+      const od=Math.hypot(o.x-b.x,o.y-b.y); if(od<nd){nd=od;target=o;} }
+    if(target){
+      let dx=target.x-b.x, dy=target.y-b.y; const d=Math.hypot(dx,dy)||1; dx/=d;dy/=d;
+      b.aimx=dx; b.aimy=dy;
+      const speed=def.speed*DIFF().speed*dt; b.px=b.x;b.py=b.y;
+      if(d>def.stop){ moveChar(b,dx*speed,dy*speed); }
+      else if(b.bossType==='squid' && d<def.stop*0.7){ moveChar(b,-dx*speed,-dy*speed); } // イカは距離をとる
+    }
+    paintCircle(b.x,b.y,b.team,30);   // 進みながら大きく塗る
+    b.bossCd-=dt;
+    if(b.bossCd<=0){ b.bossCd=def.cd*DIFF().cd; bossAttack(b,target); }
+    b.hitT+=dt;
+    if(b.inv>0) b.inv-=dt;
+  }
+  function pushBossShot(b,a,o){
+    o=o||{};
+    const sp=o.sp||390;
+    shots.push({x:b.x+Math.cos(a)*(b.r+4), y:b.y+Math.sin(a)*(b.r+4),
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, team:b.team, dist:0, maxD:o.maxD||620,
+      damage:o.damage||50, splatHit:o.splatHit||18, splatWall:18, flyOver:false, weaponType:'boss', r:o.r||8});
+  }
+  // アンコウ：大きいインク弾を投げる（ボム風・着弾で特大の塗り＆ダメージ）
+  function bossLobBomb(b,target){
+    if(!target) return;
+    for(let k=0;k<2;k++){
+      let tx=target.x+(Math.random()*2-1)*70, ty=target.y+(Math.random()*2-1)*70;
+      tx=Math.max(14,Math.min(SIZE-14,tx)); ty=Math.max(14,Math.min(SIZE-14,ty));
+      const dist=Math.hypot(tx-b.x,ty-b.y);
+      bombs.push({sx:b.x,sy:b.y,tx,ty,x:b.x,y:b.y,arc:0,t:0,dur:0.55+dist/600,team:b.team,
+        dmg:60, dmgR:110, splatR:100});   // 一撃のインク量が非常に大きい
+    }
+  }
+  function bossAttack(b,target){
+    bombFx.push({x:b.x,y:b.y,r:0,max:90});   // 攻撃の予兆リング
+    const ta = target ? Math.atan2(target.y-b.y,target.x-b.x) : Math.atan2(b.aimy,b.aimx);
+    if(b.bossType==='squid'){
+      // ライフルのように遠く・速い弾を3点バースト
+      for(let k=-1;k<=1;k++) pushBossShot(b, ta+k*0.05, {sp:580, maxD:1100, damage:42, r:6, splatHit:14});
+    } else if(b.bossType==='angler'){
+      bossLobBomb(b,target);
+    } else {
+      // クラーケン：全方位リング＋狙い5連
+      const N=14; for(let i=0;i<N;i++) pushBossShot(b, i/N*Math.PI*2);
+      for(let k=-2;k<=2;k++) pushBossShot(b, ta+k*0.16);
+    }
+  }
+  function bossDie(b){
+    b.alive=false; b.hp=0;
+    splat(b.x,b.y,1,120);   // 倒したらプレイヤー色で大きく塗る（ごほうび感）
+    bombFx.push({x:b.x,y:b.y,r:0,max:300});
+    for(let k=0;k<24;k++){ splats.push({x:b.x,y:b.y,vx:(Math.random()*2-1)*260,vy:(Math.random()*2-1)*260,life:0.7,team:1}); }
+    bossStage++;
+    if(bossStage < BOSS_TYPES.length){ spawnNextBoss(); }   // 次のボスへ
+    else { bossDefeated=true; endGame(); }                  // 3体すべて撃破でクリア
+  }
+  // 次のボスを出現させ、制限時間をリセット（プレイヤーは回復してひと息）
+  function spawnNextBoss(){
+    const nb=mkBoss(BOSS_TYPES[bossStage]); declip(nb);
+    bots=bots.filter(x=>!x.isBoss); allChars=allChars.filter(x=>!x.isBoss);
+    bots.push(nb); allChars.push(nb); boss=nb;
+    let round=(MODES.boss).round; if(difficulty==='hard') round=50;
+    timeLeft=round; timerEl.textContent=round; timerEl.classList.remove('warn');
+    if(player){ player.hp=player.maxHp; player.inv=Math.max(player.inv,1.0); }
+    showBossIntro(BOSS_TYPES[bossStage]);
+  }
+  function showBossIntro(type){
+    const el=document.getElementById('bossIntro'); if(!el) return;
+    el.textContent='👾 '+(BOSS_DEF[type]||BOSS_DEF.kraken).name+' とうじょう！';
+    el.classList.add('show');
+    clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1900);
   }
 
   function updateShots(dt){
@@ -1432,6 +1838,115 @@
     gctx.closePath();gctx.fill();gctx.stroke();
     gctx.restore();
   }
+  // ボス＝海の生き物。種類ごとに見た目を変える（丸ではなく生き物の形）
+  function drawBoss(c,t){ drawBossShape(c.bossType,c.x,c.y,c.r,t,Math.atan2(c.aimy,c.aimx)); }
+  function drawBossShape(type,x,y,r,t,dir){
+    if(type==='squid') drawSquid(x,y,r,t,dir);
+    else if(type==='angler') drawAnglerfish(x,y,r,t,dir);
+    else drawKraken(x,y,r,t,dir);
+  }
+  // イカ：とがった胴＋ヒレ＋下に伸びる足。ライフルのように遠距離を撃つ
+  function drawSquid(x,y,r,t,dir){
+    gctx.save();
+    gctx.strokeStyle='rgba(90,150,255,'+(0.3+0.3*Math.sin(t*4))+')';gctx.lineWidth=4;
+    gctx.beginPath();gctx.arc(x,y,r+13,0,Math.PI*2);gctx.stroke();
+    gctx.lineCap='round'; gctx.strokeStyle='#2f6dd0';
+    for(let i=0;i<6;i++){ const off=(i-2.5)*r*0.22, wave=Math.sin(t*4+i)*r*0.22;
+      gctx.lineWidth=Math.max(3,r*0.15);
+      gctx.beginPath();gctx.moveTo(x+off,y+r*0.45);
+      gctx.quadraticCurveTo(x+off+wave,y+r*1.2,x+off+wave*1.4,y+r*1.9);gctx.stroke(); }
+    gctx.lineWidth=Math.max(4,r*0.2);
+    for(const s of [-1,1]){ const wave=Math.sin(t*3+s)*r*0.3;
+      gctx.beginPath();gctx.moveTo(x+s*r*0.45,y+r*0.4);
+      gctx.quadraticCurveTo(x+s*r*0.9+wave,y+r*1.5,x+s*r*0.6+wave,y+r*2.15);gctx.stroke(); }
+    gctx.fillStyle='#3f7fe0';gctx.strokeStyle='#000';gctx.lineWidth=4;   // 胴（とがった円すい）
+    gctx.beginPath();
+    gctx.moveTo(x,y-r*1.7);
+    gctx.bezierCurveTo(x+r*0.95,y-r*0.9,x+r*0.8,y+r*0.5,x,y+r*0.6);
+    gctx.bezierCurveTo(x-r*0.8,y+r*0.5,x-r*0.95,y-r*0.9,x,y-r*1.7);
+    gctx.closePath();gctx.fill();gctx.stroke();
+    gctx.fillStyle='#5a96f0';                                            // ヒレ
+    for(const s of [-1,1]){ gctx.beginPath();gctx.moveTo(x+s*r*0.45,y-r*1.2);
+      gctx.lineTo(x+s*r*1.05,y-r*1.5);gctx.lineTo(x+s*r*0.45,y-r*0.75);gctx.closePath();gctx.fill();gctx.stroke(); }
+    const eyeY=y-r*0.15, exo=r*0.4;                                      // 目
+    for(const s of [-1,1]){ gctx.fillStyle='#fff';gctx.strokeStyle='#000';gctx.lineWidth=2;
+      gctx.beginPath();gctx.arc(x+s*exo,eyeY,r*0.24,0,Math.PI*2);gctx.fill();gctx.stroke();
+      gctx.fillStyle='#111';gctx.beginPath();gctx.arc(x+s*exo+Math.cos(dir)*r*0.05,eyeY+Math.sin(dir)*r*0.05,r*0.11,0,Math.PI*2);gctx.fill(); }
+    gctx.restore();
+  }
+  // アンコウ：まるい胴＋大きな歯の口＋光るちょうちん。ボムのように特大インクを投げる
+  function drawAnglerfish(x,y,r,t,dir){
+    gctx.save();
+    gctx.strokeStyle='rgba(255,210,90,'+(0.3+0.3*Math.sin(t*4))+')';gctx.lineWidth=4;
+    gctx.beginPath();gctx.arc(x,y,r+13,0,Math.PI*2);gctx.stroke();
+    gctx.fillStyle='#4a5240';gctx.strokeStyle='#000';gctx.lineWidth=3;   // 尾びれ
+    gctx.beginPath();gctx.moveTo(x+r*0.85,y);gctx.lineTo(x+r*1.6,y-r*0.5);gctx.lineTo(x+r*1.6,y+r*0.5);gctx.closePath();gctx.fill();gctx.stroke();
+    gctx.fillStyle='#5e6b4e';gctx.lineWidth=4;                           // 胴（まるい）
+    gctx.beginPath();gctx.ellipse(x,y,r*1.1,r*0.95,0,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.fillStyle='#1e1e1e';                                           // 大きな口
+    gctx.beginPath();gctx.ellipse(x,y+r*0.3,r*0.78,r*0.42,0,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.fillStyle='#fff';                                              // ギザギザの歯
+    for(let i=-3;i<=3;i++){ const tx=x+i*r*0.22;
+      gctx.beginPath();gctx.moveTo(tx-r*0.06,y+r*0.08);gctx.lineTo(tx+r*0.06,y+r*0.08);gctx.lineTo(tx,y+r*0.3);gctx.closePath();gctx.fill();
+      gctx.beginPath();gctx.moveTo(tx-r*0.06,y+r*0.52);gctx.lineTo(tx+r*0.06,y+r*0.52);gctx.lineTo(tx,y+r*0.3);gctx.closePath();gctx.fill(); }
+    gctx.fillStyle='#fff';gctx.strokeStyle='#000';gctx.lineWidth=2;     // 目
+    gctx.beginPath();gctx.arc(x-r*0.3,y-r*0.32,r*0.25,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.fillStyle='#111';gctx.beginPath();gctx.arc(x-r*0.3+Math.cos(dir)*r*0.04,y-r*0.32+Math.sin(dir)*r*0.04,r*0.12,0,Math.PI*2);gctx.fill();
+    gctx.strokeStyle='#33301f';gctx.lineWidth=3;                        // ちょうちんの柄
+    gctx.beginPath();gctx.moveTo(x-r*0.15,y-r*0.85);gctx.quadraticCurveTo(x-r*0.7,y-r*1.5,x-r*0.15,y-r*1.65);gctx.stroke();
+    const glow=0.6+0.4*Math.sin(t*5);                                   // 光るちょうちん
+    gctx.fillStyle='rgba(255,240,150,'+glow+')';gctx.shadowColor='#ffec80';gctx.shadowBlur=18;
+    gctx.beginPath();gctx.arc(x-r*0.1,y-r*1.7,r*0.2,0,Math.PI*2);gctx.fill();gctx.shadowBlur=0;
+    gctx.restore();
+  }
+  function drawKraken(x,y,r,t,dir){
+    gctx.save();
+    // ゆらめくオーラ
+    gctx.strokeStyle='rgba(150,60,210,'+(0.35+0.35*Math.sin(t*4))+')'; gctx.lineWidth=4;
+    gctx.beginPath();gctx.arc(x,y,r+13+Math.sin(t*4)*3,0,Math.PI*2);gctx.stroke();
+    // 8本のうねる足（頭より先に描いて、頭の下から生えて見えるように）
+    const arms=8;
+    gctx.lineCap='round';
+    for(let i=0;i<arms;i++){
+      const base=i/arms*Math.PI*2;
+      const wave=Math.sin(t*3+i*0.8);
+      const a=base+wave*0.25;
+      gctx.strokeStyle = i%2 ? '#5a1f86' : '#7a2aa6';
+      gctx.lineWidth=Math.max(5, r*0.34);
+      const x1=x+Math.cos(a)*r*0.8,  y1=y+Math.sin(a)*r*0.8;
+      const cx=x+Math.cos(a)*r*1.6 + Math.cos(a+1.57)*r*0.6*wave;
+      const cy=y+Math.sin(a)*r*1.6 + Math.sin(a+1.57)*r*0.6*wave;
+      const ex=x+Math.cos(a)*r*2.25, ey=y+Math.sin(a)*r*2.25;
+      gctx.beginPath();gctx.moveTo(x1,y1);gctx.quadraticCurveTo(cx,cy,ex,ey);gctx.stroke();
+      // 足先の吸ばん風の丸
+      gctx.fillStyle='#3f1660';gctx.beginPath();gctx.arc(ex,ey,r*0.12,0,Math.PI*2);gctx.fill();
+    }
+    // 頭（マントル）：上がとがった水滴形のドーム
+    gctx.fillStyle='#9333b8'; gctx.strokeStyle='#000'; gctx.lineWidth=4;
+    gctx.beginPath();
+    gctx.moveTo(x, y-r*1.5);                                  // てっぺん（とがり）
+    gctx.bezierCurveTo(x+r*1.15, y-r*1.2, x+r*1.05, y+r*0.5, x, y+r*0.65);
+    gctx.bezierCurveTo(x-r*1.05, y+r*0.5, x-r*1.15, y-r*1.2, x, y-r*1.5);
+    gctx.closePath(); gctx.fill(); gctx.stroke();
+    // ハイライト
+    gctx.fillStyle='rgba(255,255,255,.18)';
+    gctx.beginPath();gctx.ellipse(x-r*0.35,y-r*0.6,r*0.28,r*0.5,0,0,Math.PI*2);gctx.fill();
+    // 大きな目（向いている方向にちょっと寄る）＋怒り眉
+    const eyeY=y-r*0.1, exo=r*0.42, look=r*0.06;
+    for(const s of [-1,1]){
+      const exx=x+s*exo;
+      gctx.fillStyle='#fff';gctx.strokeStyle='#000';gctx.lineWidth=2;
+      gctx.beginPath();gctx.arc(exx, eyeY, r*0.27, 0, Math.PI*2);gctx.fill();gctx.stroke();
+      gctx.fillStyle='#111';
+      gctx.beginPath();gctx.arc(exx+Math.cos(dir)*look, eyeY+Math.sin(dir)*look, r*0.13, 0, Math.PI*2);gctx.fill();
+    }
+    gctx.strokeStyle='#000';gctx.lineWidth=3;
+    gctx.beginPath();
+    gctx.moveTo(x-exo-r*0.22, eyeY-r*0.34); gctx.lineTo(x-exo+r*0.2, eyeY-r*0.12);
+    gctx.moveTo(x+exo+r*0.22, eyeY-r*0.34); gctx.lineTo(x+exo-r*0.2, eyeY-r*0.12);
+    gctx.stroke();
+    gctx.restore();
+  }
   function drawChar(c,t){
     if(!c.alive){
       gctx.save();gctx.globalAlpha=.5;gctx.fillStyle=COLOR[c.team];gctx.strokeStyle='#000';gctx.lineWidth=2;
@@ -1440,29 +1955,49 @@
       gctx.fillText(Math.ceil(c.respawn), c.baseX, c.baseY+4); gctx.restore(); return; }
     gctx.save();
     if(c.inv>0 && Math.floor(t*20)%2===0) gctx.globalAlpha=.4;
+    // おたすけアイテムの効果リング
+    if(c.shieldT>0){ gctx.save();
+      gctx.strokeStyle='rgba(54,209,255,'+(0.6+0.4*Math.sin(t*8))+')'; gctx.lineWidth=3;
+      gctx.shadowColor='#36d1ff'; gctx.shadowBlur=12;
+      gctx.beginPath();gctx.arc(c.x,c.y,c.r+7,0,Math.PI*2);gctx.stroke(); gctx.restore(); }
+    if(c.rainbowT>0){ gctx.save(); gctx.lineWidth=3;
+      for(let s=0;s<6;s++){ gctx.strokeStyle='hsl('+((t*180+s*60)%360)+',95%,60%)';
+        gctx.beginPath();gctx.arc(c.x,c.y,c.r+10,s*Math.PI/3+t*2,s*Math.PI/3+t*2+Math.PI/4);gctx.stroke(); }
+      gctx.restore(); }
+    if(c.speedT>0){ gctx.save();   // 後ろに残像のシュッとした線
+      gctx.strokeStyle='rgba(255,230,0,.7)'; gctx.lineWidth=2;
+      const a=Math.atan2(c.aimy,c.aimx);
+      for(let s=1;s<=3;s++){ gctx.globalAlpha=0.5-s*0.12;
+        gctx.beginPath();gctx.arc(c.x-Math.cos(a)*s*3,c.y-Math.sin(a)*s*3,c.r,a+1.9,a-1.9);gctx.stroke(); }
+      gctx.restore(); }
     if(c.swim){ gctx.strokeStyle=COLOR_DK[c.team];gctx.lineWidth=2;
       gctx.beginPath();gctx.ellipse(c.x,c.y,c.r+4+Math.sin(t*8+c.wob)*2,c.r,0,0,Math.PI*2);gctx.stroke(); }
-    gctx.fillStyle='rgba(0,0,0,.32)';gctx.beginPath();gctx.ellipse(c.x,c.y+c.r*0.7,c.r,c.r*0.5,0,0,Math.PI*2);gctx.fill();
-    gctx.fillStyle=COLOR[c.team];gctx.strokeStyle='#000';gctx.lineWidth=3;
-    gctx.beginPath();gctx.arc(c.x,c.y,c.r,0,Math.PI*2);gctx.fill();gctx.stroke();
-    const a=Math.atan2(c.aimy,c.aimx);
-    gctx.fillStyle=COLOR_DK[c.team];
-    gctx.beginPath();gctx.moveTo(c.x+Math.cos(a)*(c.r+9),c.y+Math.sin(a)*(c.r+9));
-    gctx.lineTo(c.x+Math.cos(a+2.5)*c.r,c.y+Math.sin(a+2.5)*c.r);
-    gctx.lineTo(c.x+Math.cos(a-2.5)*c.r,c.y+Math.sin(a-2.5)*c.r);gctx.closePath();gctx.fill();
-    gctx.fillStyle='rgba(255,255,255,.65)';gctx.beginPath();gctx.arc(c.x-c.r*0.3,c.y-c.r*0.3,c.r*0.26,0,Math.PI*2);gctx.fill();
-    if(c===player){ drawPlayerFaceMark(c.x,c.y,c.r); drawPlayerBadge(c.x,c.y,c.r,a); }
-    if(c.isBot && c.team===1){ gctx.fillStyle='#fff';gctx.font='bold 9px "Dela Gothic One"';gctx.textAlign='center';
-      gctx.fillText('味', c.x, c.y-c.r-4); }
-    if(c.hp<c.maxHp){ gctx.strokeStyle='rgba(0,0,0,.4)';gctx.lineWidth=3;
-      gctx.beginPath();gctx.arc(c.x,c.y,c.r+5,-Math.PI/2,-Math.PI/2+Math.PI*2);gctx.stroke();
-      gctx.strokeStyle='#fff';gctx.beginPath();gctx.arc(c.x,c.y,c.r+5,-Math.PI/2,-Math.PI/2+Math.PI*2*(c.hp/c.maxHp));gctx.stroke(); }
+    if(c.isBoss){
+      gctx.fillStyle='rgba(0,0,0,.30)';gctx.beginPath();gctx.ellipse(c.x,c.y+c.r*0.9,c.r*2.0,c.r*0.7,0,0,Math.PI*2);gctx.fill();
+      drawBoss(c,t);   // 海の生き物（タコ／クラーケン）として描く
+    } else {
+      gctx.fillStyle='rgba(0,0,0,.32)';gctx.beginPath();gctx.ellipse(c.x,c.y+c.r*0.7,c.r,c.r*0.5,0,0,Math.PI*2);gctx.fill();
+      gctx.fillStyle=COLOR[c.team];gctx.strokeStyle='#000';gctx.lineWidth=3;
+      gctx.beginPath();gctx.arc(c.x,c.y,c.r,0,Math.PI*2);gctx.fill();gctx.stroke();
+      const a=Math.atan2(c.aimy,c.aimx);
+      gctx.fillStyle=COLOR_DK[c.team];
+      gctx.beginPath();gctx.moveTo(c.x+Math.cos(a)*(c.r+9),c.y+Math.sin(a)*(c.r+9));
+      gctx.lineTo(c.x+Math.cos(a+2.5)*c.r,c.y+Math.sin(a+2.5)*c.r);
+      gctx.lineTo(c.x+Math.cos(a-2.5)*c.r,c.y+Math.sin(a-2.5)*c.r);gctx.closePath();gctx.fill();
+      gctx.fillStyle='rgba(255,255,255,.65)';gctx.beginPath();gctx.arc(c.x-c.r*0.3,c.y-c.r*0.3,c.r*0.26,0,Math.PI*2);gctx.fill();
+      if(c===player){ drawPlayerFaceMark(c.x,c.y,c.r); drawPlayerBadge(c.x,c.y,c.r,a); }
+      if(c.isBot && c.team===1){ gctx.fillStyle='#fff';gctx.font='bold 9px "Dela Gothic One"';gctx.textAlign='center';
+        gctx.fillText('味', c.x, c.y-c.r-4); }
+      if(c.hp<c.maxHp){ gctx.strokeStyle='rgba(0,0,0,.4)';gctx.lineWidth=3;
+        gctx.beginPath();gctx.arc(c.x,c.y,c.r+5,-Math.PI/2,-Math.PI/2+Math.PI*2);gctx.stroke();
+        gctx.strokeStyle='#fff';gctx.beginPath();gctx.arc(c.x,c.y,c.r+5,-Math.PI/2,-Math.PI/2+Math.PI*2*(c.hp/c.maxHp));gctx.stroke(); }
+    }
     gctx.restore();
   }
   function drawShots(){
     for(const s of shots){
       gctx.fillStyle=COLOR[s.team];
-      let r = SHOT_R[s.weaponType] || 4.5;
+      let r = s.r || SHOT_R[s.weaponType] || 4.5;
       gctx.beginPath();gctx.arc(s.x,s.y,r,0,Math.PI*2);gctx.fill();
       gctx.globalAlpha=.4;gctx.beginPath();gctx.arc(s.x-s.vx*0.012,s.y-s.vy*0.012,r*0.7,0,Math.PI*2);gctx.fill();gctx.globalAlpha=1;
     }
@@ -1476,16 +2011,17 @@
   function drawFlyingSplats(){ for(const p of splats){ gctx.fillStyle=COLOR[p.team];
     gctx.beginPath();gctx.arc(p.x,p.y,3,0,Math.PI*2);gctx.fill(); } }
   function drawPickups(){ for(const it of pickups){
+    const def=ITEMS[it.type]||ITEMS.bombRush;
     const bob=Math.sin(it.t*3)*3, pulse=0.5+0.5*Math.sin(it.t*5);
     gctx.save();
     gctx.fillStyle='rgba(0,0,0,.28)';gctx.beginPath();gctx.ellipse(it.x,it.y+8,13,5,0,0,Math.PI*2);gctx.fill();
     gctx.translate(it.x,it.y-10+bob);
-    gctx.shadowColor='rgba(255,170,0,'+(0.55+0.45*pulse)+')';gctx.shadowBlur=20;
-    gctx.fillStyle='#ff9000';gctx.strokeStyle='#fff';gctx.lineWidth=2.5;
-    gctx.beginPath();gctx.arc(0,0,12,0,Math.PI*2);gctx.fill();gctx.stroke();
+    gctx.shadowColor=def.color;gctx.shadowBlur=18+8*pulse;
+    gctx.fillStyle=def.color;gctx.strokeStyle='#fff';gctx.lineWidth=2.5;
+    gctx.beginPath();gctx.arc(0,0,13,0,Math.PI*2);gctx.fill();gctx.stroke();
     gctx.shadowBlur=0;
-    gctx.fillStyle='#fff';gctx.font='bold 15px sans-serif';gctx.textAlign='center';gctx.textBaseline='middle';
-    gctx.fillText('∞',0,1);
+    gctx.font='15px sans-serif';gctx.textAlign='center';gctx.textBaseline='middle';
+    gctx.fillText(def.icon,0,1);
     gctx.restore();
   } }
   function drawLandingIndicator(){
@@ -1565,6 +2101,12 @@
       }
       gctx.save();
       if(c.inv>0 && Math.floor(t*20)%2===0) gctx.globalAlpha=.4;
+      if(c.isBoss){
+        const R=Math.max(12, c.r*s*0.95), by=p.sy-R*0.8;
+        gctx.fillStyle='rgba(0,0,0,.30)'; gctx.beginPath(); gctx.ellipse(p.sx,p.sy,R*1.8,R*0.5,0,0,Math.PI*2); gctx.fill();
+        drawBossShape(c.bossType, p.sx, by, R, t, Math.atan2(c.aimy,c.aimx));
+        gctx.restore(); return;
+      }
       gctx.fillStyle='rgba(0,0,0,.32)'; gctx.beginPath(); gctx.ellipse(p.sx,p.sy,br,br*0.42,0,0,Math.PI*2); gctx.fill();
       const cy=p.sy-br;
       if(c.swim){ gctx.strokeStyle=COLOR_DK[c.team]; gctx.lineWidth=Math.max(1,2*s);
@@ -1615,7 +2157,7 @@
       else if(it.k==='char') drawChar3D(it.c,it.p);
       else if(it.k==='shot'){
         const p=it.p;
-        let baseR = SHOT_R[it.s.weaponType] || 4.5;
+        let baseR = it.s.r || SHOT_R[it.s.weaponType] || 4.5;
         const r=Math.max(1.5, baseR*p.scale);
         gctx.fillStyle=COLOR[it.s.team]; gctx.beginPath(); gctx.arc(p.sx,p.sy,r,0,Math.PI*2); gctx.fill();
       }
@@ -1625,13 +2167,13 @@
       else if(it.k==='fx'){ const p=it.p;
         gctx.strokeStyle='rgba(255,230,0,.8)'; gctx.lineWidth=Math.max(2,5*p.scale);
         gctx.beginPath(); gctx.arc(p.sx,p.sy,it.f.r*p.scale,0,Math.PI*2); gctx.stroke(); }
-      else if(it.k==='item'){ const p=it.p, pulse=0.5+0.5*Math.sin(it.it.t*5), r=Math.max(4,12*p.scale);
+      else if(it.k==='item'){ const p=it.p, def=ITEMS[it.it.type]||ITEMS.bombRush, pulse=0.5+0.5*Math.sin(it.it.t*5), r=Math.max(4,13*p.scale);
         gctx.save();
-        gctx.shadowColor='rgba(255,170,0,'+(0.55+0.45*pulse)+')'; gctx.shadowBlur=16*p.scale;
-        gctx.fillStyle='#ff9000'; gctx.strokeStyle='#fff'; gctx.lineWidth=2.5;
+        gctx.shadowColor=def.color; gctx.shadowBlur=16*p.scale*(0.7+0.6*pulse);
+        gctx.fillStyle=def.color; gctx.strokeStyle='#fff'; gctx.lineWidth=2.5;
         gctx.beginPath(); gctx.arc(p.sx,p.sy,r,0,Math.PI*2); gctx.fill(); gctx.stroke();
-        gctx.shadowBlur=0; gctx.fillStyle='#fff'; gctx.font='bold '+Math.max(8,15*p.scale)+'px sans-serif';
-        gctx.textAlign='center'; gctx.textBaseline='middle'; gctx.fillText('∞',p.sx,p.sy+1);
+        gctx.shadowBlur=0; gctx.font=Math.max(8,15*p.scale)+'px sans-serif';
+        gctx.textAlign='center'; gctx.textBaseline='middle'; gctx.fillText(def.icon,p.sx,p.sy+1);
         gctx.restore(); }
     }
 
@@ -1655,17 +2197,25 @@
     gctx.moveTo(cx,cyc+4); gctx.lineTo(cx,cyc+15); gctx.stroke(); gctx.restore();
   }
 
-  function updateHUD(){
-    if(selectedMode==='knockout'){
+  function updateHUD(){ const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
+    const barO=document.getElementById('barO'), barB=document.getElementById('barB');
+    const lblO=document.getElementById('lblO'), lblB=document.getElementById('lblB');
+    if(gameMode==='boss' && boss){
+      // ボス戦：上部バーをボスのHPゲージに切り替え
+      const hr=Math.max(0, boss.hp/boss.maxHp);
+      barO.style.width=(hr*100)+'%'; barB.style.width='0%';
+      barO.style.background='linear-gradient(180deg,#ff6a6a,#c41f1f)';
+      lblO.textContent='👹'+(boss.def?boss.def.name:'ボス')+' ('+(bossStage+1)+'/'+BOSS_TYPES.length+')'; lblB.textContent=Math.round(hr*100)+'%';
+    } else if(gameMode==='knockout'){
       // せんとりウォーズ：バーは3キル到達までの進捗を表示
-      document.getElementById('barO').style.width=Math.min(100,killCount[1]/KO_TARGET*100)+'%';
-      document.getElementById('barB').style.width=Math.min(100,killCount[2]/KO_TARGET*100)+'%';
-      document.getElementById('lblO').textContent=killCount[1]+'／'+KO_TARGET+'キル';
-      document.getElementById('lblB').textContent=killCount[2]+'／'+KO_TARGET+'キル';
+      barO.style.background='';
+      barO.style.width=Math.min(100,killCount[1]/KO_TARGET*100)+'%';
+      barB.style.width=Math.min(100,killCount[2]/KO_TARGET*100)+'%';
+      lblO.textContent=killCount[1]+'／'+KO_TARGET+'キル'; lblB.textContent=killCount[2]+'／'+KO_TARGET+'キル';
     } else {
-      const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
-      document.getElementById('barO').style.width=(c.o*100)+'%'; document.getElementById('barB').style.width=(c.b*100)+'%';
-      document.getElementById('lblO').textContent=op+'%'; document.getElementById('lblB').textContent=bp+'%';
+      barO.style.background='';   // 通常色（CSS）に戻す
+      barO.style.width=(c.o*100)+'%'; barB.style.width=(c.b*100)+'%';
+      lblO.textContent=op+'%'; lblB.textContent=bp+'%';
     }
     if(player) {
       document.getElementById('inkFill').style.width=(player.ink/player.maxInk*100)+'%';
@@ -1681,6 +2231,55 @@
     const deg=ringVal*360;
     bombBtn.style.background='conic-gradient('+ringColor+' '+deg+'deg, rgba(255,255,255,.12) '+deg+'deg)';
     if(bombGauge>=1||bombRush>0) bombBtn.classList.add('ready'); else bombBtn.classList.remove('ready');
+    updateBuffBar();
+    updateSpecialHUD();
+    updateLives();
+  }
+  // のこりライフ（ハート）表示。スコアアタックは敵がいないので非表示
+  function updateLives(){
+    const el=document.getElementById('lives'); if(!el) return;
+    const showLives = gameMode!=='score' && state!=='title';
+    el.classList.toggle('show', showLives);
+    if(!showLives){ el.innerHTML=''; return; }
+    const left=Math.max(0, MAX_DEATHS-playerDeaths);
+    let html='';
+    for(let i=0;i<MAX_DEATHS;i++) html += i<left ? '❤️' : '<span class="lost">🖤</span>';
+    el.innerHTML=html;
+  }
+  // スペシャルボタン（ゲージのリング・準備OK表示）
+  function updateSpecialHUD(){
+    if(!specialBtn) return;
+    const def=SPECIALS[selectedSpecial]||SPECIALS.megapaint;
+    if(spCore) spCore.textContent=def.icon;
+    const deg=specialGauge*360;
+    specialBtn.style.background='conic-gradient('+def.color+' '+deg+'deg, rgba(255,255,255,.12) '+deg+'deg)';
+    const ready=specialGauge>=1;
+    specialBtn.classList.toggle('ready', ready);
+    // 満タンになった瞬間だけ「準備OK！」を1.6秒表示
+    const sr=document.getElementById('spReady');
+    if(ready && !specialReadyShown){ specialReadyShown=true;
+      if(sr){ sr.textContent='⭐ スペシャル '+def.name+' OK！'; sr.classList.add('show');
+        setTimeout(()=>sr.classList.remove('show'),1600); } }
+    if(!ready) specialReadyShown=false;
+  }
+  // プレイヤーが取得中のおたすけアイテム効果を画面上に表示
+  let buffSig='';
+  function updateBuffBar(){
+    const bar=document.getElementById('buffBar'); if(!bar||!player) return;
+    const active=[];
+    if(player.speedT>0)   active.push(['speed',player.speedT]);
+    if(player.shieldT>0)  active.push(['shield',player.shieldT]);
+    if(player.rainbowT>0) active.push(['rainbow',player.rainbowT]);
+    if(bombRush>0)        active.push(['bombRush',bombRush]);
+    const sig=active.map(a=>a[0]).join(',');
+    if(sig!==buffSig){   // 種類が変わったときだけ作り直す（毎フレーム作り直すとアニメがチラつくため）
+      buffSig=sig;
+      bar.innerHTML=active.map(([k])=>{ const d=ITEMS[k];
+        return '<div class="buff-chip" data-k="'+k+'" style="border-color:'+d.color+'"><span class="bc-ic">'+d.icon+'</span><span class="bc-t"></span></div>';
+      }).join('');
+    }
+    // 残り秒数だけ毎フレーム更新
+    active.forEach(([k,t])=>{ const el=bar.querySelector('.buff-chip[data-k="'+k+'"] .bc-t'); if(el) el.textContent=Math.ceil(t); });
   }
 
   // ---- ループ ----
@@ -1692,7 +2291,7 @@
       goText.textContent=lab[idx]; goText.style.opacity=1-(goTimer-idx); goText.style.transform='scale('+(1+(goTimer-idx)*0.4)+')';
       if(goTimer>=3.7){state='play';last=ts;goText.style.opacity=0;} }
     else if(state==='play'){
-      updatePlayer(dt); bots.forEach(b=>updateBot(b,dt)); updateShots(dt); updateBombs(dt); updateSplats(dt); updatePickups(dt);
+      updatePlayer(dt); bots.forEach(b=>updateBot(b,dt)); updateShots(dt); updateBombs(dt); updateSplats(dt); updatePickups(dt); updateSpecial(dt);
       timeLeft-=dt; if(timeLeft<0)timeLeft=0; const sec=Math.ceil(timeLeft); timerEl.textContent=sec;
       if(sec<=10) timerEl.classList.add('warn'); if(timeLeft<=0) endGame();
     } else if(state==='pause'||state==='quiz'){
@@ -1726,6 +2325,7 @@
         gctx.drawImage(inkCv,0,0);
         drawObstacles(); drawFlyingSplats(); drawShots(); drawBombs(); drawBombFx(); drawPickups(); drawLandingIndicator();
         if(player){ bots.forEach(b=>drawChar(b,t)); drawChar(player,t); }
+        drawRain();
       gctx.restore();
 
     }
