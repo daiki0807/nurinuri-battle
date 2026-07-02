@@ -179,6 +179,21 @@
     font-family:"Dela Gothic One",cursive;font-size:18px;color:#161616;background:var(--yellow);border:3px solid #000;
     border-radius:999px;padding:5px 18px;box-shadow:0 3px 0 #000;opacity:0;transition:opacity .25s;white-space:nowrap;}
   #spReady.show{opacity:1;}
+  /* ---- みかたへの指示（フィールドの外・ゲージバーの上の帯） ---- */
+  #allyCmd{display:none;align-items:center;justify-content:center;gap:6px;}
+  #allyCmd.show{display:flex;}
+  #allyCmd .ac-title{font-family:"Dela Gothic One",cursive;font-size:9px;color:#fff;text-shadow:1px 1px 0 #000;
+    background:rgba(0,0,0,.45);border-radius:6px;padding:3px 6px;flex:none;white-space:nowrap;}
+  .ac-btn{font-family:"Dela Gothic One",cursive;font-size:10px;color:#fff;text-align:center;cursor:pointer;
+    background:rgba(20,20,32,.72);border:2px solid #000;border-radius:9px;padding:5px 8px;flex:1;max-width:110px;
+    box-shadow:0 2px 0 #000;transition:transform .06s;white-space:nowrap;touch-action:none;}
+  .ac-btn:active{transform:translateY(2px);box-shadow:0 0 0 #000;}
+  .ac-btn.active{background:linear-gradient(135deg,var(--orange,#ff6a00),#ffb400);color:#161616;
+    border-color:#000;box-shadow:0 2px 0 #000,0 0 10px rgba(255,180,0,.7);}
+  #allyMsg{position:absolute;left:50%;top:52px;transform:translateX(-50%);z-index:10;pointer-events:none;
+    font-family:"Dela Gothic One",cursive;font-size:13px;color:#161616;background:#fff;border:3px solid #000;
+    border-radius:999px;padding:4px 14px;box-shadow:0 3px 0 #000;opacity:0;transition:opacity .2s;white-space:nowrap;}
+  #allyMsg.show{opacity:1;}
   #bossIntro{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);z-index:11;pointer-events:none;
     font-family:"Dela Gothic One",cursive;font-size:26px;color:#fff;text-shadow:3px 3px 0 #000,0 0 18px #c41f1f;
     background:rgba(140,20,40,.55);border:3px solid #000;border-radius:16px;padding:8px 22px;white-space:nowrap;
@@ -286,6 +301,7 @@
     <button id="viewBtn" class="view-btn">3人称</button>
     <button id="pauseBtn" class="view-btn pause-btn">‖ ポーズ</button>
     <div id="buffBar"></div>
+    <div id="allyMsg"></div>
     <div id="spReady">⭐ スペシャル準備OK！</div>
     <div id="bossIntro"></div>
     <div id="goText">GO!</div>
@@ -304,7 +320,8 @@
         左で移動、右でねらって<b>インク発射</b>！<br>
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
         <b>ボムは自分の陣地に乗るとチャージ</b>。満タンでボタンを押すと<b>⚡九九クイズ</b>！正解すると<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
-        塗るほど<b>⭐スペシャルゲージ</b>がたまり、満タンで<b>SPボタン（PCはEキー）</b>を押すと必殺技が発動！<br>
+        <b>新しく塗ったぶんだけ⭐スペシャルゲージ</b>がたまり、満タンで<b>SPボタン（PCはEキー）</b>を押すと必殺技が発動！<br>
+        画面左の<b>指示ボタン（PCは1・2・3キー）</b>で、みかたに<b>「ついてきて／ちらばって／おまかせ」</b>の作戦を出せる。<br>
         左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
       </div>
       <div class="status-preview" id="statusPreview">
@@ -477,6 +494,13 @@
     </div>
   </div>
 
+  <div id="allyCmd">
+    <span class="ac-title">みかたに指示</span>
+    <button class="ac-btn" data-order="follow">🏃 ついてきて</button>
+    <button class="ac-btn" data-order="spread">🎨 ちらばって</button>
+    <button class="ac-btn active" data-order="free">🤖 おまかせ</button>
+  </div>
+
   <div class="gauge-container">
     <img id="hudChar" class="hud-char" alt="">
     <div class="active-weapon" id="activeWeapon">ハンドガン</div>
@@ -490,7 +514,7 @@
     <button id="bomb"><span class="core" id="bombCore">ボム</span></button>
     <div id="firePad" class="pad fire"><span class="hint">ねらって発射</span></div>
   </div>
-  <div class="tip">PC：カーソル（マウス／トラックパッド）でキャラが追従移動・WASD/矢印でも移動・左クリックまたはShiftキーで発射・スペースキーで溜め投げ<br>1人称：マウス横またはA/D・←→で旋回／W・↑で前進・S・↓で後退・左クリックで前方へ発射</div>
+  <div class="tip">PC：カーソル（マウス／トラックパッド）でキャラが追従移動・WASD/矢印でも移動・左クリックまたはShiftキーで発射・スペースキーで溜め投げ・1/2/3キーでみかたに指示<br>1人称：マウス横またはA/D・←→で旋回／W・↑で前進・S・↓で後退・左クリックで前方へ発射</div>
 </div>
 
 <audio id="bgm0" src="BGM/Boss_Level_Sprint.mp3" loop preload="auto"></audio>
@@ -582,29 +606,33 @@
   }
 
   // ---- 塗り ----
+  // 戻り値：新しく自チーム色に変わったマス数（スペシャルゲージの充填に使う）
   function paintCircle(x,y,team,radPx){
     const radC=radPx/CELL;
     const cc=Math.floor(x/CELL), cr=Math.floor(y/CELL), R=Math.ceil(radC);
+    let painted=0;
     for(let i=-R;i<=R;i++)for(let j=-R;j<=R;j++){
       if(i*i+j*j<=radC*radC){
         const gx=cc+i, gy=cr+j;
         if(gx<0||gx>=COLS||gy<0||gy>=ROWS) continue;
         if(grid[gx][gy]===-1) continue;
-        grid[gx][gy]=team;
+        if(grid[gx][gy]!==team){ grid[gx][gy]=team; painted++; }
       }
     }
     ictx.fillStyle=COLOR[team];
     ictx.beginPath(); ictx.arc(x,y,radPx,0,Math.PI*2); ictx.fill();
+    return painted;
   }
   function splat(x,y,team,radPx){
-    paintCircle(x,y,team,radPx);
+    let painted=paintCircle(x,y,team,radPx);
     const drops=2+Math.floor(Math.random()*3);
     for(let k=0;k<drops;k++){
       const a=Math.random()*Math.PI*2, d=radPx*(0.6+Math.random()*0.9);
       const px=x+Math.cos(a)*d, py=y+Math.sin(a)*d, rr=radPx*(0.3+Math.random()*0.4);
       if(inObstacle(px,py,0)) continue;
-      paintCircle(px,py,team,rr);
+      painted+=paintCircle(px,py,team,rr);
     }
+    return painted;
   }
 
   // ---- エンティティ ----
@@ -703,6 +731,7 @@
         splatHit: w.splatHit*paintMul,
         splatWall: w.splatWall*paintMul,
         flyOver: !!w.flyOver,
+        fromPlayer: c===player,   // プレイヤーの弾の塗りだけスペシャルゲージがたまる
         weaponType: c.weapon
       });
     }
@@ -820,11 +849,12 @@
     const dx=player.aimx/len, dy=player.aimy/len;
     let tx=player.x+dx*dist, ty=player.y+dy*dist;
     tx=Math.max(12,Math.min(SIZE-12,tx)); ty=Math.max(12,Math.min(SIZE-12,ty));
-    bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650,team:player.team});
+    bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650,team:player.team,fromPlayer:true});
     if(bombRush<=0){ bombGauge=0; bombArmed=false; }   // ラッシュ中はゲージを消費しない
   }
   function explodeBomb(b,x=b.tx,y=b.ty){
-    splat(x,y,b.team,b.splatR||80);          // アンコウのボムは特大インク
+    const painted=splat(x,y,b.team,b.splatR||80);   // アンコウのボムは特大インク
+    if(b.fromPlayer) chargeSpecial(painted);
     bombFx.push({x,y,r:0,max:b.splatR?200:150});
     const dmg=b.dmg||BOMB_DAMAGE, rad=b.dmgR||BOMB_DAMAGE_RADIUS;
     for(const o of allChars){
@@ -881,9 +911,13 @@
     inkshower:{name:'インクシャワー', desc:'インクの雨がふって広く塗る', icon:'🌧️', color:'#36d1ff'},
     barrier:  {name:'バリア', desc:'数秒間むてきになって暴れる', icon:'🛡️', color:'#ffe600'},
   };
-  let specialGauge=0;            // 0→1。塗るほどたまる
+  let specialGauge=0;            // 0→1。「新しく塗ったマス数」に応じてたまる
   let specialReadyShown=false;   // 「準備OK」表示を出したか
-  const SPECIAL_FILL_RATE=1/13;  // 約13秒ぶんの塗りで満タン
+  const SPECIAL_CELLS_FULL=500;  // このマス数を新しく塗ると満タン（塗り返しも数える）
+  // プレイヤー自身の塗りだけがゲージになる（味方CPU・スペシャル自体の塗りは対象外）
+  function chargeSpecial(cells){
+    if(cells>0 && player && player.alive) specialGauge=Math.min(1, specialGauge + cells/SPECIAL_CELLS_FULL);
+  }
   const SPECIAL_BARRIER_DURATION=6;
   const INKSHOWER_DURATION=4.5, INKSHOWER_RATE=0.035, INKSHOWER_DROP_R=15;
   let inkShower={t:0, team:1};
@@ -936,18 +970,30 @@
 
   // ---- AI ----
   function pickTarget(b){
+    // みかたへの指示：ついてきて＝プレイヤーの近くから行き先を選ぶ／ちらばって＝遠い場所を優先
+    const follow = b.isAlly && allyOrder==='follow' && player && player.alive;
+    const spread = b.isAlly && allyOrder==='spread' && player;
     let best=null,bs=-1;
     for(let k=0;k<10;k++){
-      const tx=24+Math.random()*(SIZE-48), ty=24+Math.random()*(SIZE-48);
+      let tx,ty;
+      if(follow){
+        const a=Math.random()*Math.PI*2, d=30+Math.random()*80;
+        tx=Math.max(24,Math.min(SIZE-24,player.x+Math.cos(a)*d));
+        ty=Math.max(24,Math.min(SIZE-24,player.y+Math.sin(a)*d));
+      } else {
+        tx=24+Math.random()*(SIZE-48); ty=24+Math.random()*(SIZE-48);
+      }
       if(inObstacle(tx,ty,16)) continue;
       const cc=Math.floor(tx/CELL),cr=Math.floor(ty/CELL); let s=0;
       for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){ const gx=cc+i,gy=cr+j;
         if(gx<0||gx>=COLS||gy<0||gy>=ROWS)continue;
         if(grid[gx][gy]!==b.team&&grid[gx][gy]!==-1) s++; }
       s+=Math.random()*3;
+      if(spread) s+=Math.hypot(tx-player.x,ty-player.y)/50;
       if(s>bs){bs=s;best={x:tx,y:ty};}
     }
-    if(!best) best={x:24+Math.random()*(SIZE-48),y:24+Math.random()*(SIZE-48)};
+    if(!best) best= follow ? {x:player.x,y:player.y}
+      : {x:24+Math.random()*(SIZE-48),y:24+Math.random()*(SIZE-48)};
     b.tx=best.x; b.ty=best.y; b.stuck=0;
   }
 
@@ -1035,6 +1081,9 @@
     }
     if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) bombPress(); return; }
     if(e.key==='e'||e.key==='E'){ e.preventDefault(); if(!e.repeat) activateSpecial(); return; }
+    // 1〜3キー：みかたへの指示（クイズ中は上でreturn済みなので衝突しない）
+    if(state==='play' && !e.repeat && (e.key==='1'||e.key==='2'||e.key==='3')){
+      setAllyOrder(e.key==='1'?'follow':e.key==='2'?'spread':'free'); return; }
     keys[e.key.toLowerCase()]=true;
   });
   window.addEventListener('keyup',e=>{
@@ -1154,6 +1203,35 @@
     specialBtn.addEventListener('mousedown',e=>{e.preventDefault();activateSpecial();});
   }
 
+  // ---- みかたへの指示 ----
+  const ALLY_ORDERS={
+    follow:{icon:'🏃', say:'ついていくよ！'},
+    spread:{icon:'🎨', say:'ちらばってぬるよ！'},
+    free:  {icon:'🤖', say:'おまかせでいくよ！'},
+  };
+  let allyOrder='free';
+  const allyCmdEl=document.getElementById('allyCmd');
+  function refreshAllyCmd(){ if(!allyCmdEl) return;
+    allyCmdEl.querySelectorAll('.ac-btn').forEach(bt=>bt.classList.toggle('active',bt.dataset.order===allyOrder)); }
+  function setAllyOrder(k,silent){
+    if(!ALLY_ORDERS[k]) return;
+    allyOrder=k; refreshAllyCmd();
+    const ally=bots.find(b=>b.isAlly);
+    if(ally && ally.alive) pickTarget(ally);   // すぐに新しい指示で動き直す
+    if(silent) return;
+    if(ally) ally.sayT=1.7;                    // 頭上に吹き出しを出す
+    const m=document.getElementById('allyMsg');
+    if(m){ m.textContent=ALLY_ORDERS[k].icon+' みかた「'+ALLY_ORDERS[k].say+'」';
+      m.classList.add('show'); clearTimeout(m._t); m._t=setTimeout(()=>m.classList.remove('show'),1500); }
+  }
+  if(allyCmdEl){
+    allyCmdEl.querySelectorAll('.ac-btn').forEach(bt=>{
+      const h=e=>{ e.preventDefault(); e.stopPropagation(); if(state==='play') setAllyOrder(bt.dataset.order); };
+      bt.addEventListener('mousedown',h);
+      bt.addEventListener('touchstart',h,{passive:false});
+    });
+  }
+
   const viewBtn=document.getElementById('viewBtn');
   function toggleView(){
     viewIdx=(viewIdx+1)%VIEW_ORDER.length; viewMode=VIEW_ORDER[viewIdx];
@@ -1190,16 +1268,21 @@
       bots=[];                                  // スコアアタック：敵なし、ひたすら塗る
     } else if(gameMode==='boss'){
       bossStage=0; boss=mkBoss(BOSS_TYPES[0]);
-      bots=[ mkChar(sp.ally.x,sp.ally.y,1,true), boss ];   // 味方CPU＋ボス
+      const ally=mkChar(sp.ally.x,sp.ally.y,1,true); ally.isAlly=true;
+      bots=[ ally, boss ];                      // 味方CPU＋ボス
       showBossIntro(BOSS_TYPES[0]);
     } else {
+      const ally=mkChar(sp.ally.x,sp.ally.y,1,true); ally.isAlly=true;
       bots=[
-        mkChar(sp.ally.x,sp.ally.y,1,true),   // 味方CPU
+        ally,                                 // 味方CPU
         mkChar(sp.e1.x,  sp.e1.y,  2,true),   // 敵CPU
         mkChar(sp.e2.x,  sp.e2.y,  2,true),   // 敵CPU
       ];
     }
     allChars=[player,...bots];
+    // みかたへの指示：毎試合「おまかせ」に戻す。味方がいないモードではパネルを隠す
+    setAllyOrder('free',true);
+    if(allyCmdEl) allyCmdEl.classList.toggle('show', bots.some(b=>b.isAlly));
     allChars.forEach(declip);        // 念のため障害物から押し出す
     bots.forEach(b=>{ if(!b.isBoss) pickTarget(b); });
     bombGauge=0; throwing=false; throwPower=0;
@@ -1298,6 +1381,7 @@
     stopBGM(); throwing=false; throwPower=0;
     document.getElementById('quizBox').classList.remove('show'); quizCur=null;
     pauseBtn.classList.remove('show');
+    if(allyCmdEl) allyCmdEl.classList.remove('show');   // 指示パネルはプレイ中だけ表示
     state='title';
     overlay.innerHTML=MENU_HTML;
     overlay.classList.remove('hide');
@@ -1341,6 +1425,7 @@
     if(state==='result') return;   // 同一フレーム内での二重呼び出しを防ぐ
     stopBGM();
     pauseBtn.classList.remove('show');
+    if(allyCmdEl) allyCmdEl.classList.remove('show');   // 指示パネルはプレイ中だけ表示
     state='result';
     const c=coverage(), op=Math.round(c.o*100), bp=Math.round(c.b*100);
     let titleHtml, descHtml, extra='', win=false;
@@ -1586,13 +1671,11 @@
     moveChar(player,dx*speed,dy*speed);
     if(!player.swim && moving){
       if(pw.isRoller && player.ink>0.5){   // ローラー：移動で足元を太く塗りつぶす（インク消費）
-        paintCircle(player.x,player.y,player.team,pw.rollPaint*paintMul);
+        chargeSpecial(paintCircle(player.x,player.y,player.team,pw.rollPaint*paintMul));
         player.ink=Math.max(0,player.ink-pw.rollInk*dt);
-      } else paintCircle(player.x,player.y,player.team,7*paintMul);
+      } else chargeSpecial(paintCircle(player.x,player.y,player.team,7*paintMul));
     }
-    // スペシャルゲージ：塗っている（発射 or ローラー移動）ときにたまる
-    if(player.alive && (firing || (pw.isRoller && moving && !player.swim)))
-      specialGauge=Math.min(1, specialGauge + dt*SPECIAL_FILL_RATE);
+    // スペシャルゲージは「新しく塗ったマス数」でたまる（弾の着弾分は updateShots 側で加算）
     // スピナーの回転は撃たないと徐々に落ちる
     if(!firing) player.spin=Math.max(0,(player.spin||0)-dt*1.5);
 
@@ -1631,6 +1714,12 @@
   function updateBot(b,dt){
     if(b.isBoss){ updateBoss(b,dt); return; }
     if(!b.alive){ b.respawn-=dt; if(b.respawn<=0) respawnChar(b); return; }
+    if(b.isAlly){
+      if(b.sayT>0) b.sayT-=dt;
+      // ついてきて：プレイヤーが行き先から離れたら、すぐ近くへ行き先を選び直す
+      if(allyOrder==='follow' && player && player.alive &&
+         Math.hypot(player.x-b.tx,player.y-b.ty)>140) pickTarget(b);
+    }
     let dx=b.tx-b.x,dy=b.ty-b.y; const d=Math.hypot(dx,dy)||1;
     if(d<22){ pickTarget(b); dx=b.tx-b.x; dy=b.ty-b.y; }
     const dd=Math.hypot(dx,dy)||1; dx/=dd; dy/=dd;
@@ -1771,13 +1860,19 @@
         if(blocked||nx<2||nx>SIZE-2||ny<2||ny>SIZE-2||s.dist>=s.maxD){
           const ex=blocked?s.x:nx, ey=blocked?s.y:ny;
           let lx=Math.max(4,Math.min(SIZE-4,ex)), ly=Math.max(4,Math.min(SIZE-4,ey));
-          if(!inObstacle(lx,ly,0)) splat(lx,ly,s.team,s.splatWall);
+          if(!inObstacle(lx,ly,0)){
+            const painted=splat(lx,ly,s.team,s.splatWall);
+            if(s.fromPlayer) chargeSpecial(painted);
+          }
           shots.splice(i,1); removed=true; break;
         }
         s.x=nx; s.y=ny;
         let hit=false;
         for(const tt of allChars){ if(tt.team===s.team||!tt.alive||tt.inv>0) continue;
-          if(Math.hypot(tt.x-s.x,tt.y-s.y)<tt.r+6){ damage(tt,s.damage); splat(s.x,s.y,s.team,s.splatHit); hit=true; break; } }
+          if(Math.hypot(tt.x-s.x,tt.y-s.y)<tt.r+6){ damage(tt,s.damage);
+            const painted=splat(s.x,s.y,s.team,s.splatHit);
+            if(s.fromPlayer) chargeSpecial(painted);
+            hit=true; break; } }
         if(hit){ shots.splice(i,1); removed=true; break; }
       }
       if(removed) continue;
@@ -1998,7 +2093,19 @@
       gctx.fillStyle='rgba(255,255,255,.65)';gctx.beginPath();gctx.arc(c.x-c.r*0.3,c.y-c.r*0.3,c.r*0.26,0,Math.PI*2);gctx.fill();
       if(c===player){ drawPlayerFaceMark(c.x,c.y,c.r); drawPlayerBadge(c.x,c.y,c.r,a); }
       if(c.isBot && c.team===1){ gctx.fillStyle='#fff';gctx.font='bold 9px "Dela Gothic One"';gctx.textAlign='center';
-        gctx.fillText('味', c.x, c.y-c.r-4); }
+        gctx.fillText('味', c.x, c.y-c.r-4);
+        if(c.sayT>0){   // 指示を受けたとき、頭上に返事の吹き出しを出す
+          const msg=(ALLY_ORDERS[allyOrder]||ALLY_ORDERS.free).say;
+          gctx.font='bold 10px "Zen Maru Gothic"';
+          const tw=gctx.measureText(msg).width;
+          gctx.fillStyle='#fff'; gctx.strokeStyle='#000'; gctx.lineWidth=2;
+          roundRect(gctx,c.x-tw/2-7,c.y-c.r-34,tw+14,18,8); gctx.fill(); gctx.stroke();
+          gctx.beginPath(); gctx.moveTo(c.x-4,c.y-c.r-16); gctx.lineTo(c.x+4,c.y-c.r-16);
+          gctx.lineTo(c.x,c.y-c.r-9); gctx.closePath();
+          gctx.fillStyle='#fff'; gctx.fill(); gctx.stroke();
+          gctx.fillStyle='#161616'; gctx.textAlign='center'; gctx.textBaseline='middle';
+          gctx.fillText(msg,c.x,c.y-c.r-25); gctx.textBaseline='alphabetic';
+        } }
       if(c.hp<c.maxHp){ gctx.strokeStyle='rgba(0,0,0,.4)';gctx.lineWidth=3;
         gctx.beginPath();gctx.arc(c.x,c.y,c.r+5,-Math.PI/2,-Math.PI/2+Math.PI*2);gctx.stroke();
         gctx.strokeStyle='#fff';gctx.beginPath();gctx.arc(c.x,c.y,c.r+5,-Math.PI/2,-Math.PI/2+Math.PI*2*(c.hp/c.maxHp));gctx.stroke(); }
