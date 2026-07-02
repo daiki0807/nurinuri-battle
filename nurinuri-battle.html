@@ -1757,19 +1757,30 @@
 
   function updateShots(dt){
     for(let i=shots.length-1;i>=0;i--){
-      const s=shots[i]; const nx=s.x+s.vx*dt, ny=s.y+s.vy*dt;
-      s.dist+=Math.hypot(nx-s.x,ny-s.y); s.x=nx; s.y=ny;
-      let hit=false;
-      for(const tt of allChars){ if(tt.team===s.team||!tt.alive||tt.inv>0) continue;
-        if(Math.hypot(tt.x-s.x,tt.y-s.y)<tt.r+6){ damage(tt,s.damage); splat(s.x,s.y,s.team,s.splatHit); hit=true; break; } }
-      if(hit){ shots.splice(i,1); continue; }
-      // スロッシャー弾(flyOver)は障害物の上を飛び越える＝障害物では消えない
-      const blocked = !s.flyOver && inObstacle(s.x,s.y,0);
-      if(s.x<2||s.x>SIZE-2||s.y<2||s.y>SIZE-2||blocked||s.dist>=s.maxD){
-        let lx=Math.max(4,Math.min(SIZE-4,s.x)), ly=Math.max(4,Math.min(SIZE-4,s.y));
-        if(!inObstacle(lx,ly,0)) splat(lx,ly,s.team,s.splatWall);
-        shots.splice(i,1);
+      const s=shots[i];
+      // 弾道を細かく刻んで判定（1フレームで壁を飛び越すすり抜けを防ぐ）
+      const mv=Math.hypot(s.vx,s.vy)*dt;
+      const steps=Math.max(1,Math.ceil(mv/4));
+      let removed=false;
+      for(let k=0;k<steps;k++){
+        const nx=s.x+s.vx*dt/steps, ny=s.y+s.vy*dt/steps;
+        // 壁判定を先に行う：壁に入った弾は手前で消え、裏の敵には当たらない
+        // （スロッシャー弾 flyOver は障害物の上を飛び越える＝壁では消えない）
+        const blocked = !s.flyOver && inObstacle(nx,ny,0);
+        s.dist+=Math.hypot(nx-s.x,ny-s.y);
+        if(blocked||nx<2||nx>SIZE-2||ny<2||ny>SIZE-2||s.dist>=s.maxD){
+          const ex=blocked?s.x:nx, ey=blocked?s.y:ny;
+          let lx=Math.max(4,Math.min(SIZE-4,ex)), ly=Math.max(4,Math.min(SIZE-4,ey));
+          if(!inObstacle(lx,ly,0)) splat(lx,ly,s.team,s.splatWall);
+          shots.splice(i,1); removed=true; break;
+        }
+        s.x=nx; s.y=ny;
+        let hit=false;
+        for(const tt of allChars){ if(tt.team===s.team||!tt.alive||tt.inv>0) continue;
+          if(Math.hypot(tt.x-s.x,tt.y-s.y)<tt.r+6){ damage(tt,s.damage); splat(s.x,s.y,s.team,s.splatHit); hit=true; break; } }
+        if(hit){ shots.splice(i,1); removed=true; break; }
       }
+      if(removed) continue;
     }
   }
   function updateBombs(dt){
