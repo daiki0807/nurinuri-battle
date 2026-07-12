@@ -121,14 +121,19 @@
   @keyframes quizpop{from{transform:scale(.7);opacity:0;}to{transform:scale(1);opacity:1;}}
   .quiz-tag{font-family:"Dela Gothic One",cursive;font-size:13px;color:#161616;background:var(--yellow);
     display:inline-block;padding:3px 14px;border-radius:999px;border:2px solid #000;box-shadow:0 2px 0 #000;}
-  .quiz-q{font-family:"Dela Gothic One",cursive;font-size:44px;color:#fff;text-shadow:3px 3px 0 #000;margin:12px 0 14px;}
+  .quiz-q{font-family:"Dela Gothic One",cursive;font-size:32px;color:#fff;text-shadow:3px 3px 0 #000;margin:12px 0 14px;
+    line-height:1.25;word-break:break-word;}
   .quiz-answers{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .quiz-answers.quiz-levels{grid-template-columns:1fr;}
   .quiz-ans{font-family:"Dela Gothic One",cursive;font-size:24px;color:#fff;background:#2a2a3e;border:3px solid #000;
     border-radius:14px;padding:12px 4px;cursor:pointer;box-shadow:0 4px 0 #000;transition:transform .06s;}
   .quiz-ans:active{transform:translateY(3px);box-shadow:0 1px 0 #000;}
   .quiz-ans.good{background:#1fa84a;}
   .quiz-ans.bad{background:#c43a3a;}
   .quiz-ans.dim{opacity:.45;}
+  .quiz-level{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;}
+  .quiz-level .lv-name{font-size:22px;}
+  .quiz-level .lv-hint{font-size:13px;opacity:.9;text-align:right;line-height:1.2;}
   .quiz-fb{font-family:"Dela Gothic One",cursive;font-size:18px;min-height:26px;margin-top:12px;color:var(--yellow);text-shadow:2px 2px 0 #000;}
 
   .gauge-container {display:flex;align-items:center;gap:8px;width:100%;}
@@ -308,7 +313,7 @@
     <div id="quizBox">
       <div class="quiz-card">
         <div class="quiz-tag">⚡ クイズボム！</div>
-        <div class="quiz-q" id="quizQ">7×8＝？</div>
+        <div class="quiz-q" id="quizQ">たんいクイズ</div>
         <div class="quiz-answers" id="quizAnswers"></div>
         <div class="quiz-fb" id="quizFb"></div>
       </div>
@@ -319,7 +324,7 @@
       <div class="desc">
         左で移動、右でねらって<b>インク発射</b>！<br>
         <span class="o">自分のインク</span>の上では<b>イカになって高速移動＆インク回復</b>、<span class="b">敵インク</span>の上は遅くなる。<br>
-        <b>ボムは自分の陣地に乗るとチャージ</b>。満タンでボタンを押すと<b>⚡九九クイズ</b>！正解すると<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
+        <b>ボムは自分の陣地に乗るとチャージ</b>。満タンでボタンを押すと<b>⚡たんいクイズ</b>！<b>レベル（スロー／ミディアム／ハイ）</b>をえらび、正解すると<b>むずかしいほど大きいインクのボム</b>を<b>タップ＝近く／長押しで離す＝遠く</b>に投げられる。<br>
         <b>新しく塗ったぶんだけ⭐スペシャルゲージ</b>がたまり、満タンで<b>SPボタン（PCはEキー）</b>を押すと必殺技が発動！<br>
         画面左の<b>指示ボタン（PCは1・2・3キー）</b>で、みかたに<b>「ついてきて／ちらばって／おまかせ」</b>の作戦を出せる。<br>
         左上ボタンで視点切替：<b>3人称（全体）⇔1人称（前方を見渡す3D視点）</b>。
@@ -778,30 +783,100 @@
   const BOMB_RUSH_DURATION=5;
   // ---- クイズボム：ゲージ満タン→クイズに正解するとボム解禁 ----
   let bombArmed=false, quizCorrect=0, quizTotal=0, quizCur=null, quizLock=false;
-  // 問題セット（将来、漢字・都道府県などを追加できる形）
-  function genKuku(){
-    const a=2+Math.floor(Math.random()*8), b=2+Math.floor(Math.random()*8), ans=a*b;
-    const set=new Set([ans]);
-    while(set.size<4){
-      let d = Math.random()<0.5
-        ? (Math.max(2,a+Math.floor(Math.random()*3)-1))*(Math.max(2,b+Math.floor(Math.random()*3)-1))
-        : ans+[-a,a,-b,b][Math.floor(Math.random()*4)];
-      if(d>=1&&d<=81&&d!==ans) set.add(d);
+  // ---- たんいクイズ：問題を作るための道具 ----
+  // correct と まちがい候補の pool から 4択を組む（pool の先頭から順に3つ採用）
+  function makeQ(q, correct, pool){
+    const opts=[correct];
+    for(const v of pool){
+      if(opts.length>=4) break;
+      const n=Math.round(v);
+      if(n>0 && n!==correct && !opts.includes(n)) opts.push(n);
     }
-    const answers=[...set].sort(()=>Math.random()-0.5);
-    return {q:a+'×'+b+'＝？', answers:answers.map(String), correct:answers.indexOf(ans)};
+    let k=2;
+    while(opts.length<4){                       // 万一足りなければ桁ちがいで補充
+      const n=correct*Math.pow(10,k);
+      if(n>0 && !opts.includes(n)) opts.push(n);
+      if(++k>6) break;
+    }
+    const arr=opts.slice(0,4).sort(()=>Math.random()-0.5);
+    return {q, answers:arr.map(String), correct:arr.indexOf(correct)};
   }
-  const QUIZ_SETS={ kuku:{name:'九九', gen:genKuku} };
-  let quizSetKey='kuku';
 
-  function openQuiz(){
+  // スロー：「1つ分」の単位（1km＝□m など）。3年で躓きやすい基礎を反復
+  const U_SLOW=[
+    {q:'1km ＝ □m', a:1000},{q:'1m ＝ □cm', a:100},{q:'1cm ＝ □mm', a:10},
+    {q:'1L ＝ □dL', a:10},{q:'1L ＝ □mL', a:1000},{q:'1kg ＝ □g', a:1000},
+    {q:'1分 ＝ □秒', a:60},{q:'1時間 ＝ □分', a:60},
+  ];
+  function genUnitSlow(){
+    const f=U_SLOW[Math.floor(Math.random()*U_SLOW.length)];
+    return makeQ(f.q, f.a, [f.a*10, f.a/10, f.a/100, f.a*100, 100, 1000, 60, 10]);
+  }
+  // ミディアム：n倍の変換（3km＝□m など）。誤答は「0のつけ忘れ・つけすぎ」
+  const U_MED=[
+    {u:'km',v:'m',f:1000},{u:'m',v:'cm',f:100},{u:'cm',v:'mm',f:10},
+    {u:'L',v:'dL',f:10},{u:'kg',v:'g',f:1000},{u:'分',v:'秒',f:60},{u:'時間',v:'分',f:60},
+  ];
+  function genUnitMed(){
+    const m=U_MED[Math.floor(Math.random()*U_MED.length)];
+    const n=2+Math.floor(Math.random()*8), a=n*m.f;
+    return makeQ(n+m.u+' ＝ □'+m.v, a, [a*10, a/10, n, n*10, m.f, a+m.f, a-m.f]);
+  }
+  // ハイ：逆向き変換 or 複合単位。応用でいちばん差が開くところ
+  const U_REV=[
+    {s:'m',b:'km',f:1000},{s:'cm',b:'m',f:100},{s:'mm',b:'cm',f:10},
+    {s:'g',b:'kg',f:1000},{s:'秒',b:'分',f:60},{s:'分',b:'時間',f:60},{s:'dL',b:'L',f:10},
+  ];
+  const U_CMP=[
+    {b:'m',s:'cm',f:100},{b:'km',s:'m',f:1000},{b:'L',s:'dL',f:10},
+    {b:'kg',s:'g',f:1000},{b:'時間',s:'分',f:60},{b:'分',s:'秒',f:60},{b:'cm',s:'mm',f:10},
+  ];
+  function genUnitHard(){
+    if(Math.random()<0.5){
+      const r=U_REV[Math.floor(Math.random()*U_REV.length)];
+      const big=2+Math.floor(Math.random()*8), small=big*r.f;
+      return makeQ(small+r.s+' ＝ □'+r.b, big, [big*r.f, big*10, small/(r.f*10), big+1, Math.max(1,big-1), big*100]);
+    } else {
+      const c=U_CMP[Math.floor(Math.random()*U_CMP.length)];
+      const A=1+Math.floor(Math.random()*3), B=1+Math.floor(Math.random()*(c.f-1)), ans=A*c.f+B;
+      return makeQ(A+c.b+B+c.s+' ＝ □'+c.s, ans, [B, A*c.f, ans+c.f, ans-c.f, ans+10, Math.max(1,ans-10)]);
+    }
+  }
+
+  // ---- レベル（難易度）と ごほうび（正解でなげるボムのインクの大きさ・ダメージ範囲）----
+  const QUIZ_LEVELS={
+    slow:{name:'スロー', hint:'かんたん／ふつうのボム', splatR:80,  dmgR:92,  gen:genUnitSlow},
+    med :{name:'ミディアム', hint:'ふつう／大きいボム',   splatR:118, dmgR:112, gen:genUnitMed },
+    high:{name:'ハイ', hint:'むずかしい／特大ボム',       splatR:165, dmgR:132, gen:genUnitHard},
+  };
+  let quizLevelKey=null, pendingBombReward=null;
+
+  // 満タン→まずレベルをえらぶ
+  function openLevelSelect(){
     if(state!=='play') return;
-    state='quiz'; quizLock=false;
-    quizCur=QUIZ_SETS[quizSetKey].gen();
-    const box=document.getElementById('quizBox');
+    state='quiz'; quizLock=false; quizCur=null;
+    document.getElementById('quizQ').textContent='レベルを えらぼう';
+    document.getElementById('quizFb').textContent='むずかしいほど インクが 大きい！';
+    const wrap=document.getElementById('quizAnswers'); wrap.innerHTML=''; wrap.className='quiz-answers quiz-levels';
+    Object.keys(QUIZ_LEVELS).forEach(key=>{
+      const lv=QUIZ_LEVELS[key];
+      const btn=document.createElement('button');
+      btn.className='quiz-ans quiz-level';
+      btn.innerHTML='<span class="lv-name">'+lv.name+'</span><span class="lv-hint">'+lv.hint+'</span>';
+      const pick=e=>{ if(e) e.preventDefault(); startQuiz(key); };
+      btn.addEventListener('click',pick);
+      btn.addEventListener('touchstart',pick,{passive:false});
+      wrap.appendChild(btn);
+    });
+    document.getElementById('quizBox').classList.add('show');
+  }
+  // レベル決定→問題を出す
+  function startQuiz(levelKey){
+    quizLevelKey=levelKey; quizLock=false;
+    quizCur=QUIZ_LEVELS[levelKey].gen();
     document.getElementById('quizQ').textContent=quizCur.q;
     document.getElementById('quizFb').textContent='せいかいで ボムが なげられる！';
-    const wrap=document.getElementById('quizAnswers'); wrap.innerHTML='';
+    const wrap=document.getElementById('quizAnswers'); wrap.innerHTML=''; wrap.className='quiz-answers';
     quizCur.answers.forEach((txt,i)=>{
       const btn=document.createElement('button');
       btn.className='quiz-ans'; btn.textContent=txt;
@@ -810,12 +885,12 @@
       btn.addEventListener('touchstart',pick,{passive:false});
       wrap.appendChild(btn);
     });
-    box.classList.add('show');
   }
   function answerQuiz(i){
     if(quizLock||!quizCur) return;
     quizLock=true; quizTotal++;
     const ok = i===quizCur.correct;
+    const lv = QUIZ_LEVELS[quizLevelKey]||QUIZ_LEVELS.slow;
     const fb=document.getElementById('quizFb');
     const btns=document.querySelectorAll('#quizAnswers .quiz-ans');
     btns.forEach((b,j)=>{
@@ -823,9 +898,15 @@
       else if(j===i) b.classList.add('bad');
       else b.classList.add('dim');
     });
-    if(ok){ quizCorrect++; bombArmed=true; fb.textContent='せいかい！ボムを なげろ！'; }
-    else { bombGauge=0.5; fb.textContent='ざんねん…こたえは '+quizCur.answers[quizCur.correct]+'！'; }
-    setTimeout(closeQuiz, ok?700:1300);
+    if(ok){
+      quizCorrect++; bombArmed=true;
+      pendingBombReward={splatR:lv.splatR, dmgR:lv.dmgR};   // レベルに応じたごほうび
+      fb.textContent='せいかい！'+lv.name+'の ボムを なげろ！';
+    } else {
+      bombGauge=0.5; pendingBombReward=null;
+      fb.textContent='ざんねん…こたえは '+quizCur.answers[quizCur.correct]+'！';
+    }
+    setTimeout(closeQuiz, ok?800:1400);
   }
   function closeQuiz(){
     document.getElementById('quizBox').classList.remove('show');
@@ -838,7 +919,7 @@
   function bombPress(){
     if(state!=='play'||!player||!player.alive) return;
     if(bombRush>0){ throwing=true; throwPower=0; return; }          // ラッシュ中はクイズなしで投げ放題
-    if(bombGauge>=1 && !bombArmed){ openQuiz(); return; }            // 満タン→まずクイズ！
+    if(bombGauge>=1 && !bombArmed){ openLevelSelect(); return; }      // 満タン→レベル選択→クイズ！
     if(canThrow()){ throwing=true; throwPower=0; }
   }
   function bombRelease(){ if(throwing){ throwBomb(throwPower); throwing=false; throwPower=0; } }
@@ -849,8 +930,10 @@
     const dx=player.aimx/len, dy=player.aimy/len;
     let tx=player.x+dx*dist, ty=player.y+dy*dist;
     tx=Math.max(12,Math.min(SIZE-12,tx)); ty=Math.max(12,Math.min(SIZE-12,ty));
-    bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650,team:player.team,fromPlayer:true});
-    if(bombRush<=0){ bombGauge=0; bombArmed=false; }   // ラッシュ中はゲージを消費しない
+    const rw=pendingBombReward;
+    bombs.push({sx:player.x,sy:player.y,tx,ty,x:player.x,y:player.y,arc:0,t:0,dur:0.32+dist/650,team:player.team,fromPlayer:true,
+      splatR: rw?rw.splatR:null, dmgR: rw?rw.dmgR:null});
+    if(bombRush<=0){ bombGauge=0; bombArmed=false; pendingBombReward=null; }   // ラッシュ中はゲージを消費しない
   }
   function explodeBomb(b,x=b.tx,y=b.ty){
     const painted=splat(x,y,b.team,b.splatR||80);   // アンコウのボムは特大インク
